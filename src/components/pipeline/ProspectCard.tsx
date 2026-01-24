@@ -1,0 +1,90 @@
+import { useDraggable } from '@dnd-kit/core';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+interface ProspectWithStats {
+  id: string;
+  company_name: string;
+  contact_name: string;
+  estimated_value: number | null;
+  pending_activities: number;
+  days_in_phase: number;
+}
+
+interface ProspectCardProps {
+  prospect: ProspectWithStats;
+  isDragging?: boolean;
+}
+
+export function ProspectCard({ prospect, isDragging }: ProspectCardProps) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: prospect.id,
+  });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-CR', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        'cursor-grab active:cursor-grabbing transition-shadow bg-card',
+        isDragging && 'shadow-lg opacity-90 ring-2 ring-primary'
+      )}
+    >
+      <CardContent className="p-3">
+        <div className="space-y-2">
+          <div>
+            <h4 className="font-medium text-sm truncate">
+              {prospect.company_name}
+            </h4>
+            <p className="text-xs text-muted-foreground truncate">
+              {prospect.contact_name}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {prospect.estimated_value && prospect.estimated_value > 0 && (
+              <Badge variant="outline" className="text-xs">
+                💰 {formatCurrency(prospect.estimated_value)}
+              </Badge>
+            )}
+            {prospect.pending_activities > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                📋 {prospect.pending_activities}
+              </Badge>
+            )}
+            {prospect.days_in_phase > 0 && (
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  'text-xs',
+                  prospect.days_in_phase > 14 && 'border-warning text-warning',
+                  prospect.days_in_phase > 30 && 'border-destructive text-destructive'
+                )}
+              >
+                ⏱️ {prospect.days_in_phase}d
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
