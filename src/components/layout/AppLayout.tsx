@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   LayoutDashboard, 
-  Kanban, 
+  Kanban,
+  TableProperties,
   LogOut, 
   Plus, 
   Loader2,
@@ -38,10 +39,25 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <Navigate to="/login" replace />;
   }
 
-  const currentTab = location.pathname === '/pipeline' ? 'pipeline' : 'dashboard';
+  const getCurrentTab = () => {
+    if (location.pathname === '/pipeline') return 'pipeline';
+    if (location.pathname === '/gestion') return 'gestion';
+    return 'dashboard';
+  };
+
+  const currentTab = getCurrentTab();
 
   const handleTabChange = (value: string) => {
-    navigate(value === 'pipeline' ? '/pipeline' : '/dashboard');
+    switch (value) {
+      case 'pipeline':
+        navigate('/pipeline');
+        break;
+      case 'gestion':
+        navigate('/gestion');
+        break;
+      default:
+        navigate('/dashboard');
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -77,6 +93,10 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <TabsTrigger value="pipeline" className="gap-2">
                   <Kanban className="h-4 w-4" />
                   Pipeline
+                </TabsTrigger>
+                <TabsTrigger value="gestion" className="gap-2">
+                  <TableProperties className="h-4 w-4" />
+                  Gestión
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -129,6 +149,14 @@ export function AppLayout({ children }: AppLayoutProps) {
               >
                 <Kanban className="h-4 w-4" />
                 Pipeline
+              </Button>
+              <Button
+                variant={currentTab === 'gestion' ? 'default' : 'ghost'}
+                className="justify-start gap-2"
+                onClick={() => handleTabChange('gestion')}
+              >
+                <TableProperties className="h-4 w-4" />
+                Gestión
               </Button>
             </div>
           </div>
