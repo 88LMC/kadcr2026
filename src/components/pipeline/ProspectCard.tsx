@@ -1,4 +1,3 @@
-import { useDraggable } from '@dnd-kit/core';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -14,20 +13,10 @@ interface ProspectWithStats {
 
 interface ProspectCardProps {
   prospect: ProspectWithStats;
-  isDragging?: boolean;
+  onClick?: () => void;
 }
 
-export function ProspectCard({ prospect, isDragging }: ProspectCardProps) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: prospect.id,
-  });
-
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
-
+export function ProspectCard({ prospect, onClick }: ProspectCardProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CR', {
       style: 'currency',
@@ -39,13 +28,9 @@ export function ProspectCard({ prospect, isDragging }: ProspectCardProps) {
 
   return (
     <Card
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
+      onClick={onClick}
       className={cn(
-        'cursor-grab active:cursor-grabbing transition-shadow bg-card',
-        isDragging && 'shadow-lg opacity-90 ring-2 ring-primary'
+        'cursor-pointer transition-all hover:shadow-md hover:ring-2 hover:ring-primary/50 bg-card'
       )}
     >
       <CardContent className="p-3">
