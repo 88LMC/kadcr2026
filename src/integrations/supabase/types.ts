@@ -19,12 +19,13 @@ export type Database = {
           activity_type: Database["public"]["Enums"]["activity_type"]
           block_reason: string | null
           completed_at: string | null
+          completion_comment: string | null
           created_at: string | null
           created_by: Database["public"]["Enums"]["created_by_type"] | null
           custom_type: string | null
           id: string
           notes: string | null
-          prospect_id: string
+          prospect_id: string | null
           scheduled_date: string
           status: Database["public"]["Enums"]["activity_status"] | null
         }
@@ -32,12 +33,13 @@ export type Database = {
           activity_type: Database["public"]["Enums"]["activity_type"]
           block_reason?: string | null
           completed_at?: string | null
+          completion_comment?: string | null
           created_at?: string | null
           created_by?: Database["public"]["Enums"]["created_by_type"] | null
           custom_type?: string | null
           id?: string
           notes?: string | null
-          prospect_id: string
+          prospect_id?: string | null
           scheduled_date: string
           status?: Database["public"]["Enums"]["activity_status"] | null
         }
@@ -45,12 +47,13 @@ export type Database = {
           activity_type?: Database["public"]["Enums"]["activity_type"]
           block_reason?: string | null
           completed_at?: string | null
+          completion_comment?: string | null
           created_at?: string | null
           created_by?: Database["public"]["Enums"]["created_by_type"] | null
           custom_type?: string | null
           id?: string
           notes?: string | null
-          prospect_id?: string
+          prospect_id?: string | null
           scheduled_date?: string
           status?: Database["public"]["Enums"]["activity_status"] | null
         }
@@ -145,6 +148,7 @@ export type Database = {
         | "Seguimiento"
         | "Facturación"
         | "Otro"
+        | "General"
       created_by_type: "system" | "salesperson" | "manager"
       phase_type:
         | "Prospección"
@@ -294,6 +298,7 @@ export const Constants = {
         "Seguimiento",
         "Facturación",
         "Otro",
+        "General",
       ],
       created_by_type: ["system", "salesperson", "manager"],
       phase_type: [

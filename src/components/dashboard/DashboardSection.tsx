@@ -13,6 +13,7 @@ interface DashboardSectionProps {
   children: ReactNode;
   emptyMessage?: string;
   isEmpty?: boolean;
+  className?: string;
 }
 
 export function DashboardSection({
@@ -24,6 +25,7 @@ export function DashboardSection({
   children,
   emptyMessage = 'No hay actividades',
   isEmpty,
+  className,
 }: DashboardSectionProps) {
   const getVariantStyles = () => {
     switch (variant) {
@@ -53,7 +55,7 @@ export function DashboardSection({
   const styles = getVariantStyles();
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

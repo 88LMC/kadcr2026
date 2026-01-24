@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
-import { AlertCircle, CalendarCheck, Phone, Ban } from 'lucide-react';
+import { AlertCircle, CalendarCheck, Phone, Ban, ClipboardList } from 'lucide-react';
 import { MetricsBar } from '@/components/dashboard/MetricsBar';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
 import { ActivityItem } from '@/components/dashboard/ActivityItem';
+import { GeneralActivityItem } from '@/components/dashboard/GeneralActivityItem';
 import { 
   useUrgentActivities, 
   useTodayActivities, 
   useNewCallsActivities,
   useBlockedActivities,
+  useGeneralActivities,
   useGenerateDailyCalls,
   useUnblockActivity,
 } from '@/hooks/useActivities';
@@ -22,6 +24,7 @@ export default function Dashboard() {
   const { data: todayActivities, isLoading: isLoadingToday } = useTodayActivities();
   const { data: newCallsActivities, isLoading: isLoadingCalls } = useNewCallsActivities();
   const { data: blockedActivities, isLoading: isLoadingBlocked } = useBlockedActivities();
+  const { data: generalActivities, isLoading: isLoadingGeneral } = useGeneralActivities();
   
   const generateDailyCalls = useGenerateDailyCalls();
   const unblockActivity = useUnblockActivity();
@@ -111,7 +114,25 @@ export default function Dashboard() {
           ))}
         </DashboardSection>
 
-        {/* Blocked Section */}
+        {/* General Tasks Section */}
+        <DashboardSection
+          title="Tareas Generales"
+          icon={<ClipboardList className="h-5 w-5 text-muted-foreground" />}
+          count={generalActivities?.length || 0}
+          variant="today"
+          isLoading={isLoadingGeneral}
+          isEmpty={!generalActivities?.length}
+          emptyMessage="No hay tareas generales pendientes"
+        >
+          {generalActivities?.map((activity) => (
+            <GeneralActivityItem
+              key={activity.id}
+              activity={activity}
+            />
+          ))}
+        </DashboardSection>
+
+        {/* Blocked Section - Full width */}
         <DashboardSection
           title="Bloqueados"
           icon={<Ban className="h-5 w-5 text-blocked" />}
@@ -120,6 +141,7 @@ export default function Dashboard() {
           isLoading={isLoadingBlocked}
           isEmpty={!blockedActivities?.length}
           emptyMessage="No hay actividades bloqueadas"
+          className="lg:col-span-2"
         >
           {blockedActivities?.map((activity) => (
             <ActivityItem

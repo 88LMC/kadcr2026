@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Popover,
   PopoverContent,
@@ -46,6 +47,12 @@ type ActivityType = Database['public']['Enums']['activity_type'];
 
 const ACTIVITY_TYPES = Constants.public.Enums.activity_type;
 
+// Activity types for prospect-related activities
+const PROSPECT_ACTIVITY_TYPES = ACTIVITY_TYPES.filter(t => t !== 'General');
+
+// Activity types for general tasks
+const GENERAL_ACTIVITY_TYPES: ActivityType[] = ['General', 'Otro'];
+
 interface CreateActivityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +60,7 @@ interface CreateActivityModalProps {
 }
 
 export function CreateActivityModal({ open, onOpenChange, isManager }: CreateActivityModalProps) {
+  const [activityCategory, setActivityCategory] = useState<'prospect' | 'general'>('prospect');
   const [selectedProspect, setSelectedProspect] = useState<{
     id: string;
     company_name: string;
@@ -71,6 +79,8 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
   const createActivity = useCreateActivity();
   const { data: prospects, isLoading: isSearching } = useProspectSearch(searchTerm);
 
+  const minNotesLength = 10;
+
   // Reset form when modal closes
   useEffect(() => {
     if (!open) {
@@ -78,8 +88,19 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
     }
   }, [open]);
 
+  // Reset activity type when category changes
+  useEffect(() => {
+    if (activityCategory === 'general') {
+      setActivityType('General');
+      setSelectedProspect(null);
+    } else {
+      setActivityType('Llamada');
+    }
+  }, [activityCategory]);
+
   const handleSubmit = async () => {
-    if (!selectedProspect) {
+    // Validate based on category
+    if (activityCategory === 'prospect' && !selectedProspect) {
       toast({
         title: 'Error',
         description: 'Por favor selecciona un prospecto.',
@@ -97,6 +118,16 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
       return;
     }
 
+    // Notes are required
+    if (!notes.trim() || notes.trim().length < minNotesLength) {
+      toast({
+        title: 'Error',
+        description: `La descripción debe tener al menos ${minNotesLength} caracteres.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // If urgent, set the date to yesterday so it appears in urgent section
       const finalDate = isUrgent 
@@ -104,18 +135,22 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
         : format(scheduledDate, 'yyyy-MM-dd');
 
       await createActivity.mutateAsync({
-        prospect_id: selectedProspect.id,
+        prospect_id: activityCategory === 'prospect' ? selectedProspect!.id : null,
         activity_type: activityType,
         custom_type: activityType === 'Otro' ? customType.trim() || null : null,
         scheduled_date: finalDate,
-        notes: notes.trim() || null,
+        notes: notes.trim(),
         status: 'pending',
         created_by: isManager ? 'manager' : 'salesperson',
       });
 
+      const description = activityCategory === 'prospect' 
+        ? `${activityType} programada para ${selectedProspect!.company_name}`
+        : `Tarea general "${notes.slice(0, 30)}..." creada`;
+
       toast({
         title: 'Actividad creada',
-        description: `${activityType} programada para ${selectedProspect.company_name}`,
+        description,
       });
 
       onOpenChange(false);
@@ -129,6 +164,7 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
   };
 
   const resetForm = () => {
+    setActivityCategory('prospect');
     setSelectedProspect(null);
     setSearchTerm('');
     setActivityType('Llamada');
@@ -138,79 +174,108 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
     setIsUrgent(false);
   };
 
+  const availableActivityTypes = activityCategory === 'prospect' 
+    ? PROSPECT_ACTIVITY_TYPES 
+    : GENERAL_ACTIVITY_TYPES;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nueva Actividad</DialogTitle>
           <DialogDescription>
-            Crear una nueva actividad de seguimiento
+            Crear una nueva actividad de seguimiento o tarea general
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Prospect selector */}
-          <div className="space-y-2">
-            <Label>Prospecto</Label>
-            <Popover open={isProspectPopoverOpen} onOpenChange={setIsProspectPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !selectedProspect && 'text-muted-foreground'
-                  )}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  {selectedProspect ? selectedProspect.company_name : 'Buscar prospecto...'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput
-                    placeholder="Buscar por empresa o contacto..."
-                    value={searchTerm}
-                    onValueChange={setSearchTerm}
-                  />
-                  <CommandList>
-                    <CommandEmpty>
-                      {isSearching ? 'Buscando...' : 'No se encontraron prospectos'}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {prospects?.map((prospect) => (
-                        <CommandItem
-                          key={prospect.id}
-                          value={prospect.company_name}
-                          onSelect={() => {
-                            setSelectedProspect(prospect);
-                            setIsProspectPopoverOpen(false);
-                          }}
-                        >
-                          <div>
-                            <p className="font-medium">{prospect.company_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {prospect.contact_name}
-                            </p>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+          {/* Activity Category Radio */}
+          <div className="space-y-3">
+            <Label>Tipo de actividad:</Label>
+            <RadioGroup
+              value={activityCategory}
+              onValueChange={(v) => setActivityCategory(v as 'prospect' | 'general')}
+              className="flex flex-col gap-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="prospect" id="prospect" />
+                <Label htmlFor="prospect" className="font-normal cursor-pointer">
+                  Relacionada con prospecto
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="general" id="general" />
+                <Label htmlFor="general" className="font-normal cursor-pointer">
+                  Tarea general (sin prospecto)
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
+
+          {/* Prospect selector - only for prospect activities */}
+          {activityCategory === 'prospect' && (
+            <div className="space-y-2">
+              <Label>Prospecto</Label>
+              <Popover open={isProspectPopoverOpen} onOpenChange={setIsProspectPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !selectedProspect && 'text-muted-foreground'
+                    )}
+                  >
+                    <Search className="mr-2 h-4 w-4" />
+                    {selectedProspect ? selectedProspect.company_name : 'Buscar prospecto...'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Buscar por empresa o contacto..."
+                      value={searchTerm}
+                      onValueChange={setSearchTerm}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {isSearching ? 'Buscando...' : 'No se encontraron prospectos'}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {prospects?.map((prospect) => (
+                          <CommandItem
+                            key={prospect.id}
+                            value={prospect.company_name}
+                            onSelect={() => {
+                              setSelectedProspect(prospect);
+                              setIsProspectPopoverOpen(false);
+                            }}
+                          >
+                            <div>
+                              <p className="font-medium">{prospect.company_name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {prospect.contact_name}
+                              </p>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
 
           {/* Activity type */}
           <div className="space-y-2">
-            <Label>Tipo de Actividad</Label>
+            <Label>Tipo</Label>
             <Select value={activityType} onValueChange={(v) => setActivityType(v as ActivityType)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona el tipo" />
               </SelectTrigger>
               <SelectContent>
-                {ACTIVITY_TYPES.map((type) => (
+                {availableActivityTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -263,15 +328,20 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
             </Popover>
           </div>
 
-          {/* Notes */}
+          {/* Notes - now required */}
           <div className="space-y-2">
-            <Label>Notas (opcional)</Label>
+            <Label>Descripción de la actividad (obligatorio)</Label>
             <Textarea
-              placeholder="Agregar notas..."
+              placeholder={activityCategory === 'general' 
+                ? "Ej: Depositar factura #1234 en Banco Nacional..." 
+                : "Agregar notas sobre la actividad..."}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
             />
+            <p className="text-xs text-muted-foreground">
+              Mínimo {minNotesLength} caracteres ({notes.trim().length}/{minNotesLength})
+            </p>
           </div>
 
           {/* Urgent checkbox - only for managers */}
@@ -293,13 +363,16 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={createActivity.isPending}>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={createActivity.isPending || notes.trim().length < minNotesLength}
+          >
             {createActivity.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Plus className="mr-2 h-4 w-4" />
             )}
-            Crear Actividad
+            Crear
           </Button>
         </DialogFooter>
       </DialogContent>
