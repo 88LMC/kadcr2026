@@ -31,6 +31,7 @@ export function useUrgentActivities() {
         `)
         .eq('status', 'pending')
         .lt('scheduled_date', today)
+        .not('prospect_id', 'is', null) // Exclude general activities
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;
@@ -55,6 +56,7 @@ export function useTodayActivities() {
         `)
         .eq('status', 'pending')
         .eq('scheduled_date', today)
+        .not('prospect_id', 'is', null) // Exclude general activities
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -112,16 +114,60 @@ export function useNewCallsActivities() {
   });
 }
 
+// New: General activities (without prospect)
+export function useGeneralActivities() {
+  return useQuery({
+    queryKey: ['activities', 'general'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('status', 'pending')
+        .is('prospect_id', null)
+        .order('scheduled_date', { ascending: true });
+
+      if (error) throw error;
+      return data as Activity[];
+    },
+  });
+}
+
 export function useCompleteActivity() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (activityId: string) => {
-      const { error } = await supabase
+    mutationFn: async ({ activityId, comment }: { activityId: string; comment: string }) => {
+      const { data, error } = await supabase
         .from('activities')
         .update({
           status: 'completed' as ActivityStatus,
           completed_at: new Date().toISOString(),
+          completion_comment: comment,
+        })
+        .eq('id', activityId)
+        .select('prospect_id')
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    },
+  });
+}
+
+// New: Not complete activity (stays pending, but adds comment)
+export function useNotCompleteActivity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ activityId, comment }: { activityId: string; comment: string }) => {
+      const { error } = await supabase
+        .from('activities')
+        .update({
+          completion_comment: comment,
+          // Status stays 'pending', date doesn't change
         })
         .eq('id', activityId);
 
@@ -143,6 +189,7 @@ export function useBlockActivity() {
         .update({
           status: 'blocked' as ActivityStatus,
           block_reason: blockReason,
+          completion_comment: blockReason, // Block reason is also the comment
         })
         .eq('id', activityId);
 

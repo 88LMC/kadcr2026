@@ -30,6 +30,7 @@ interface ActivityItemProps {
     status: ActivityStatus | null;
     notes?: string | null;
     block_reason?: string | null;
+    prospect_id?: string | null;
     prospects: {
       company_name: string;
       contact_name: string;
@@ -48,6 +49,7 @@ const activityIcons: Record<ActivityType, typeof Phone> = {
   'Cotización': Receipt,
   'Seguimiento': Clock,
   'Facturación': FileCheck,
+  'General': MoreHorizontal,
   'Otro': MoreHorizontal,
 };
 
