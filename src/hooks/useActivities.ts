@@ -157,21 +157,31 @@ export function useCompleteActivity() {
   });
 }
 
-// New: Not complete activity (stays pending, but adds comment)
+// Not complete activity (stays pending, but adds comment)
 export function useNotCompleteActivity() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ activityId, comment }: { activityId: string; comment: string }) => {
-      const { error } = await supabase
+      console.log('NotCompleteActivity - Activity ID:', activityId);
+      console.log('NotCompleteActivity - Comment:', comment);
+      
+      const { data, error } = await supabase
         .from('activities')
         .update({
           completion_comment: comment,
-          // Status stays 'pending', date doesn't change
         })
-        .eq('id', activityId);
+        .eq('id', activityId)
+        .select();
 
-      if (error) throw error;
+      console.log('NotCompleteActivity - Result:', data, error);
+
+      if (error) {
+        console.error('NotCompleteActivity - Error detallado:', error);
+        throw error;
+      }
+      
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activities'] });
