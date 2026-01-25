@@ -163,9 +163,6 @@ export function useNotCompleteActivity() {
 
   return useMutation({
     mutationFn: async ({ activityId, comment }: { activityId: string; comment: string }) => {
-      console.log('NotCompleteActivity - Activity ID:', activityId);
-      console.log('NotCompleteActivity - Comment:', comment);
-      
       const { data, error } = await supabase
         .from('activities')
         .update({
@@ -174,13 +171,7 @@ export function useNotCompleteActivity() {
         .eq('id', activityId)
         .select();
 
-      console.log('NotCompleteActivity - Result:', data, error);
-
-      if (error) {
-        console.error('NotCompleteActivity - Error detallado:', error);
-        throw error;
-      }
-      
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
@@ -251,14 +242,21 @@ export function useGenerateDailyCalls() {
 
   return useMutation({
     mutationFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Solo generar llamadas de Lunes (1) a Jueves (4)
+      if (dayOfWeek < 1 || dayOfWeek > 4) {
+        return { generated: 0, message: 'Solo se generan llamadas de Lunes a Jueves' };
+      }
       
       // Check if daily calls already exist for today
       const { data: existingCalls, error: checkError } = await supabase
         .from('activities')
         .select('id')
         .eq('activity_type', 'Llamada')
-        .eq('scheduled_date', today)
+        .eq('scheduled_date', todayStr)
         .eq('created_by', 'system');
 
       if (checkError) throw checkError;
@@ -286,7 +284,7 @@ export function useGenerateDailyCalls() {
         .from('activities')
         .select('prospect_id')
         .eq('activity_type', 'Llamada')
-        .eq('scheduled_date', today);
+        .eq('scheduled_date', todayStr);
 
       if (callsError) throw callsError;
 
@@ -305,10 +303,10 @@ export function useGenerateDailyCalls() {
       const newActivities = selectedProspects.map(p => ({
         prospect_id: p.id,
         activity_type: 'Llamada' as ActivityType,
-        scheduled_date: today,
+        scheduled_date: todayStr,
         status: 'pending' as ActivityStatus,
         created_by: 'system' as const,
-        notes: 'Llamada diaria auto-generada',
+        notes: 'Primera llamada de calificación',
       }));
 
       if (newActivities.length > 0) {
