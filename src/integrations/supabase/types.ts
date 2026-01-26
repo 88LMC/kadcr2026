@@ -138,7 +138,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_activity_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          blocked_activities: number
+          completed_this_week: number
+          overdue_activities: number
+          pending_activities: number
+          total_activities: number
+        }[]
+      }
     }
     Enums: {
       activity_status: "pending" | "completed" | "blocked"
