@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 
@@ -42,12 +42,14 @@ interface EditProspectModalProps {
   prospect: Prospect | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreateActivity?: (prospect: { id: string; company_name: string; contact_name: string }) => void;
 }
 
 export default function EditProspectModal({
   prospect,
   open,
   onOpenChange,
+  onCreateActivity,
 }: EditProspectModalProps) {
   const [formData, setFormData] = useState({
     contact_name: '',
@@ -279,20 +281,40 @@ export default function EditProspectModal({
             />
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={updateProspect.isPending}>
-              {updateProspect.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Guardar Cambios
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {onCreateActivity && prospect && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  onCreateActivity({
+                    id: prospect.id,
+                    company_name: prospect.company_name,
+                    contact_name: prospect.contact_name,
+                  });
+                  onOpenChange(false);
+                }}
+                className="w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Actividad
+              </Button>
+            )}
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={updateProspect.isPending}>
+                {updateProspect.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Guardar Cambios
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
