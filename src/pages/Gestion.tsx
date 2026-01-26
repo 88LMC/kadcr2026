@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Search, ArrowUpDown, AlertTriangle, Plus } from 'lucide-react';
+import { Search, ArrowUpDown, AlertTriangle, Plus, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import CreateProspectModal from '@/components/prospects/CreateProspectModal';
@@ -41,6 +41,7 @@ interface ProspectRow {
   pending_activities: number;
   next_activity_date: string | null;
   days_in_phase: number;
+  assigned_user_name: string | null;
 }
 
 type SortKey = 'company_name' | 'current_phase' | 'estimated_value' | 'pending_activities' | 'next_activity_date';
@@ -66,25 +67,42 @@ export default function Gestion() {
 
       if (prospectsError) throw prospectsError;
 
-      // Get pending activities per prospect with next date
+      // Get pending activities per prospect with next date and assigned user
       const { data: activities, error: activitiesError } = await supabase
         .from('activities')
-        .select('prospect_id, scheduled_date')
+        .select(`
+          prospect_id, 
+          scheduled_date,
+          assigned_to
+        `)
         .eq('status', 'pending')
         .not('prospect_id', 'is', null);
 
       if (activitiesError) throw activitiesError;
 
+      // Get all user profiles to map assigned_to -> full_name
+      const { data: userProfiles, error: usersError } = await supabase
+        .from('user_profiles')
+        .select('id, full_name');
+
+      if (usersError) throw usersError;
+
+      const userMap: Record<string, string> = {};
+      userProfiles?.forEach(u => {
+        userMap[u.id] = u.full_name;
+      });
+
       // Calculate stats
-      const activityStats: Record<string, { count: number; nextDate: string | null }> = {};
+      const activityStats: Record<string, { count: number; nextDate: string | null; assignedTo: string | null }> = {};
       activities?.forEach(a => {
         if (!a.prospect_id) return;
         if (!activityStats[a.prospect_id]) {
-          activityStats[a.prospect_id] = { count: 0, nextDate: null };
+          activityStats[a.prospect_id] = { count: 0, nextDate: null, assignedTo: null };
         }
         activityStats[a.prospect_id].count++;
         if (!activityStats[a.prospect_id].nextDate || a.scheduled_date < activityStats[a.prospect_id].nextDate!) {
           activityStats[a.prospect_id].nextDate = a.scheduled_date;
+          activityStats[a.prospect_id].assignedTo = a.assigned_to;
         }
       });
 
@@ -92,7 +110,7 @@ export default function Gestion() {
       const prospectsWithStats: ProspectRow[] = prospectsData?.map(p => {
         const updatedAt = new Date(p.updated_at || p.created_at || now);
         const daysInPhase = Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24));
-        const stats = activityStats[p.id] || { count: 0, nextDate: null };
+        const stats = activityStats[p.id] || { count: 0, nextDate: null, assignedTo: null };
 
         return {
           id: p.id,
@@ -105,6 +123,7 @@ export default function Gestion() {
           pending_activities: stats.count,
           next_activity_date: stats.nextDate,
           days_in_phase: daysInPhase,
+          assigned_user_name: stats.assignedTo ? userMap[stats.assignedTo] || null : null,
         };
       }) || [];
 
@@ -302,6 +321,7 @@ export default function Gestion() {
               <TableHead className="text-right">
                 <SortButton label="Valor" sortKeyValue="estimated_value" />
               </TableHead>
+              <TableHead className="hidden lg:table-cell">Asignado a</TableHead>
               <TableHead className="text-center hidden sm:table-cell">
                 <SortButton label="Act." sortKeyValue="pending_activities" />
               </TableHead>
@@ -313,7 +333,7 @@ export default function Gestion() {
           <TableBody>
             {filteredProspects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No se encontraron prospectos
                 </TableCell>
               </TableRow>
@@ -348,6 +368,16 @@ export default function Gestion() {
                   </TableCell>
                   <TableCell className="text-right">
                     {prospect.estimated_value ? formatCurrency(prospect.estimated_value) : '-'}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {prospect.assigned_user_name ? (
+                      <Badge variant="outline" className="gap-1">
+                        <User className="h-3 w-3" />
+                        {prospect.assigned_user_name}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center hidden sm:table-cell">
                     {prospect.pending_activities > 0 ? (
