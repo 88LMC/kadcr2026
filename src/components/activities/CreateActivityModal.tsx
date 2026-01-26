@@ -36,12 +36,14 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { CalendarIcon, Loader2, Plus, Search } from 'lucide-react';
+import { CalendarIcon, Loader2, Plus, Search, User } from 'lucide-react';
 import { useCreateActivity } from '@/hooks/useActivities';
 import { useProspectSearch } from '@/hooks/useProspects';
+import { useAllUsers } from '@/hooks/useUsers';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Constants, Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ActivityType = Database['public']['Enums']['activity_type'];
 
@@ -60,6 +62,7 @@ interface CreateActivityModalProps {
 }
 
 export function CreateActivityModal({ open, onOpenChange, isManager }: CreateActivityModalProps) {
+  const { user } = useAuth();
   const [activityCategory, setActivityCategory] = useState<'prospect' | 'general'>('prospect');
   const [selectedProspect, setSelectedProspect] = useState<{
     id: string;
@@ -74,10 +77,12 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
   const [isUrgent, setIsUrgent] = useState(false);
   const [isProspectPopoverOpen, setIsProspectPopoverOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [assignedTo, setAssignedTo] = useState<string>('');
 
   const { toast } = useToast();
   const createActivity = useCreateActivity();
   const { data: prospects, isLoading: isSearching } = useProspectSearch(searchTerm);
+  const { data: allUsers } = useAllUsers();
 
   const minNotesLength = 10;
 
@@ -142,6 +147,7 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
         notes: notes.trim(),
         status: 'pending',
         created_by: isManager ? 'manager' : 'salesperson',
+        assigned_to: isManager ? assignedTo || user?.id : user?.id,
       });
 
       const description = activityCategory === 'prospect' 
@@ -172,6 +178,7 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
     setScheduledDate(new Date());
     setNotes('');
     setIsUrgent(false);
+    setAssignedTo('');
   };
 
   const availableActivityTypes = activityCategory === 'prospect' 
@@ -343,6 +350,29 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
               Mínimo {minNotesLength} caracteres ({notes.trim().length}/{minNotesLength})
             </p>
           </div>
+
+          {/* Assign to dropdown - only for managers */}
+          {isManager && (
+            <div className="space-y-2">
+              <Label>Asignar a</Label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar usuario" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {allUsers?.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      <span className="flex items-center gap-2">
+                        <User className="h-3 w-3" />
+                        {u.full_name} ({u.role === 'manager' ? 'Manager' : 'Vendedor'})
+                        {u.id === user?.id && ' - Yo'}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Urgent checkbox - only for managers */}
           {isManager && (
