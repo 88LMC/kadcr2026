@@ -17,6 +17,7 @@ export type Database = {
       activities: {
         Row: {
           activity_type: Database["public"]["Enums"]["activity_type"]
+          assigned_to: string | null
           block_reason: string | null
           completed_at: string | null
           completion_comment: string | null
@@ -31,6 +32,7 @@ export type Database = {
         }
         Insert: {
           activity_type: Database["public"]["Enums"]["activity_type"]
+          assigned_to?: string | null
           block_reason?: string | null
           completed_at?: string | null
           completion_comment?: string | null
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           activity_type?: Database["public"]["Enums"]["activity_type"]
+          assigned_to?: string | null
           block_reason?: string | null
           completed_at?: string | null
           completion_comment?: string | null
