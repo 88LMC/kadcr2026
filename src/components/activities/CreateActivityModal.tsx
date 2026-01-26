@@ -59,9 +59,14 @@ interface CreateActivityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isManager?: boolean;
+  preSelectedProspect?: {
+    id: string;
+    company_name: string;
+    contact_name: string;
+  } | null;
 }
 
-export function CreateActivityModal({ open, onOpenChange, isManager }: CreateActivityModalProps) {
+export function CreateActivityModal({ open, onOpenChange, isManager, preSelectedProspect }: CreateActivityModalProps) {
   const { user } = useAuth();
   const [activityCategory, setActivityCategory] = useState<'prospect' | 'general'>('prospect');
   const [selectedProspect, setSelectedProspect] = useState<{
@@ -85,6 +90,14 @@ export function CreateActivityModal({ open, onOpenChange, isManager }: CreateAct
   const { data: allUsers } = useAllUsers();
 
   const minNotesLength = 10;
+
+  // Set pre-selected prospect when modal opens
+  useEffect(() => {
+    if (open && preSelectedProspect) {
+      setSelectedProspect(preSelectedProspect);
+      setActivityCategory('prospect');
+    }
+  }, [open, preSelectedProspect]);
 
   // Reset form when modal closes
   useEffect(() => {

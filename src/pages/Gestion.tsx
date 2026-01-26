@@ -27,6 +27,8 @@ import { cn } from '@/lib/utils';
 import CreateProspectModal from '@/components/prospects/CreateProspectModal';
 import EditProspectModal from '@/components/prospects/EditProspectModal';
 import ProspectActivitiesModal from '@/components/prospects/ProspectActivitiesModal';
+import { CreateActivityModal } from '@/components/activities/CreateActivityModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 
@@ -50,6 +52,7 @@ type SortKey = 'company_name' | 'current_phase' | 'estimated_value' | 'pending_a
 type SortOrder = 'asc' | 'desc';
 
 export default function Gestion() {
+  const { isManager } = useAuth();
   const [search, setSearch] = useState('');
   const [phaseFilter, setPhaseFilter] = useState<string>('all');
   const [sortKey, setSortKey] = useState<SortKey>('company_name');
@@ -57,6 +60,7 @@ export default function Gestion() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProspect, setEditingProspect] = useState<ProspectRow | null>(null);
   const [viewingProspect, setViewingProspect] = useState<ProspectRow | null>(null);
+  const [activityProspect, setActivityProspect] = useState<{ id: string; company_name: string; contact_name: string } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -448,6 +452,7 @@ export default function Gestion() {
         prospect={editingProspect}
         open={!!editingProspect}
         onOpenChange={(open) => !open && setEditingProspect(null)}
+        onCreateActivity={(prospect) => setActivityProspect(prospect)}
       />
 
       {/* View Activities Modal */}
@@ -455,6 +460,14 @@ export default function Gestion() {
         prospect={viewingProspect}
         open={!!viewingProspect}
         onOpenChange={(open) => !open && setViewingProspect(null)}
+      />
+
+      {/* Create Activity Modal with pre-selected prospect */}
+      <CreateActivityModal
+        open={!!activityProspect}
+        onOpenChange={(open) => !open && setActivityProspect(null)}
+        isManager={isManager}
+        preSelectedProspect={activityProspect}
       />
     </div>
   );
