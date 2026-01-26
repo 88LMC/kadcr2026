@@ -21,11 +21,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Search, ArrowUpDown, AlertTriangle, Plus, User, Pencil, Trash2 } from 'lucide-react';
+import { Search, ArrowUpDown, AlertTriangle, Plus, User, Pencil, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import CreateProspectModal from '@/components/prospects/CreateProspectModal';
 import EditProspectModal from '@/components/prospects/EditProspectModal';
+import ProspectActivitiesModal from '@/components/prospects/ProspectActivitiesModal';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 
@@ -55,6 +56,7 @@ export default function Gestion() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingProspect, setEditingProspect] = useState<ProspectRow | null>(null);
+  const [viewingProspect, setViewingProspect] = useState<ProspectRow | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -407,6 +409,14 @@ export default function Gestion() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => setViewingProspect(prospect)}
+                        title="Ver actividades"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setEditingProspect(prospect)}
                         title="Editar prospecto"
                       >
@@ -438,6 +448,13 @@ export default function Gestion() {
         prospect={editingProspect}
         open={!!editingProspect}
         onOpenChange={(open) => !open && setEditingProspect(null)}
+      />
+
+      {/* View Activities Modal */}
+      <ProspectActivitiesModal
+        prospect={viewingProspect}
+        open={!!viewingProspect}
+        onOpenChange={(open) => !open && setViewingProspect(null)}
       />
     </div>
   );
