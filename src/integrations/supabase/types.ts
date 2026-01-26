@@ -148,6 +148,7 @@ export type Database = {
           total_activities: number
         }[]
       }
+      is_manager: { Args: never; Returns: boolean }
     }
     Enums: {
       activity_status: "pending" | "completed" | "blocked"
