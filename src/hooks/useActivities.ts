@@ -23,24 +23,21 @@ interface ActivityWithProspect extends Activity {
 }
 
 export function useUrgentActivities() {
-  const { user, isManager } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['activities', 'urgent', user?.id, isManager],
+    queryKey: ['activities', 'urgent', user?.id],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      let query = supabase
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase
         .from('activities')
         .select(`
           *,
           prospects (
             company_name,
             contact_name
-          ),
-          assigned_user:user_profiles (
-            full_name,
-            role
           )
         `)
         .eq('status', 'pending')
@@ -48,39 +45,34 @@ export function useUrgentActivities() {
         .not('prospect_id', 'is', null)
         .order('scheduled_date', { ascending: true });
 
-      // Salesperson only sees their own activities
-      if (!isManager && user?.id) {
-        query = query.eq('assigned_to', user.id);
+      if (error) {
+        console.error('Urgent activities error:', error);
+        throw error;
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as unknown as ActivityWithProspect[];
+      
+      console.log('Urgent activities fetched:', data?.length);
+      return (data || []) as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
 }
 
 export function useTodayActivities() {
-  const { user, isManager } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['activities', 'today', user?.id, isManager],
+    queryKey: ['activities', 'today', user?.id],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      let query = supabase
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase
         .from('activities')
         .select(`
           *,
           prospects (
             company_name,
             contact_name
-          ),
-          assigned_user:user_profiles (
-            full_name,
-            role
           )
         `)
         .eq('status', 'pending')
@@ -88,73 +80,65 @@ export function useTodayActivities() {
         .not('prospect_id', 'is', null)
         .order('created_at', { ascending: true });
 
-      if (!isManager && user?.id) {
-        query = query.eq('assigned_to', user.id);
+      if (error) {
+        console.error('Today activities error:', error);
+        throw error;
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as unknown as ActivityWithProspect[];
+      
+      console.log('Today activities fetched:', data?.length);
+      return (data || []) as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
 }
 
 export function useBlockedActivities() {
-  const { user, isManager } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['activities', 'blocked', user?.id, isManager],
+    queryKey: ['activities', 'blocked', user?.id],
     queryFn: async () => {
-      let query = supabase
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase
         .from('activities')
         .select(`
           *,
           prospects (
             company_name,
             contact_name
-          ),
-          assigned_user:user_profiles (
-            full_name,
-            role
           )
         `)
         .eq('status', 'blocked')
         .order('scheduled_date', { ascending: true });
 
-      if (!isManager && user?.id) {
-        query = query.eq('assigned_to', user.id);
+      if (error) {
+        console.error('Blocked activities error:', error);
+        throw error;
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as unknown as ActivityWithProspect[];
+      
+      console.log('Blocked activities fetched:', data?.length);
+      return (data || []) as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
 }
 
 export function useNewCallsActivities() {
-  const { user, isManager } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['activities', 'new-calls', user?.id, isManager],
+    queryKey: ['activities', 'new-calls', user?.id],
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      let query = supabase
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase
         .from('activities')
         .select(`
           *,
           prospects (
             company_name,
             contact_name
-          ),
-          assigned_user:user_profiles (
-            full_name,
-            role
           )
         `)
         .eq('status', 'pending')
@@ -164,46 +148,39 @@ export function useNewCallsActivities() {
         .order('created_at', { ascending: true })
         .limit(3);
 
-      if (!isManager && user?.id) {
-        query = query.eq('assigned_to', user.id);
+      if (error) {
+        console.error('New calls error:', error);
+        throw error;
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as unknown as ActivityWithProspect[];
+      
+      console.log('New calls fetched:', data?.length);
+      return (data || []) as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
 }
 
 export function useGeneralActivities() {
-  const { user, isManager } = useAuth();
+  const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['activities', 'general', user?.id, isManager],
+    queryKey: ['activities', 'general', user?.id],
     queryFn: async () => {
-      let query = supabase
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase
         .from('activities')
-        .select(`
-          *,
-          assigned_user:user_profiles (
-            full_name,
-            role
-          )
-        `)
+        .select('*')
         .eq('status', 'pending')
         .is('prospect_id', null)
         .order('scheduled_date', { ascending: true });
 
-      if (!isManager && user?.id) {
-        query = query.eq('assigned_to', user.id);
+      if (error) {
+        console.error('General activities error:', error);
+        throw error;
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as unknown as (Activity & { assigned_user?: AssignedUser | null })[];
+      
+      console.log('General activities fetched:', data?.length);
+      return (data || []) as Activity[];
     },
     enabled: !!user,
   });
