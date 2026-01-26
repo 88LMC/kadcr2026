@@ -9,15 +9,17 @@ type ActivityUpdate = Database['public']['Tables']['activities']['Update'];
 type ActivityStatus = Database['public']['Enums']['activity_status'];
 type ActivityType = Database['public']['Enums']['activity_type'];
 
+interface AssignedUser {
+  full_name: string;
+  role: string;
+}
+
 interface ActivityWithProspect extends Activity {
   prospects: {
     company_name: string;
     contact_name: string;
   } | null;
-  assigned_user?: {
-    full_name: string;
-    role: string;
-  } | null;
+  assigned_user?: AssignedUser | null;
 }
 
 export function useUrgentActivities() {
@@ -36,7 +38,7 @@ export function useUrgentActivities() {
             company_name,
             contact_name
           ),
-          assigned_user:user_profiles!activities_assigned_to_fkey (
+          assigned_user:user_profiles (
             full_name,
             role
           )
@@ -54,7 +56,7 @@ export function useUrgentActivities() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as ActivityWithProspect[];
+      return data as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
@@ -76,7 +78,7 @@ export function useTodayActivities() {
             company_name,
             contact_name
           ),
-          assigned_user:user_profiles!activities_assigned_to_fkey (
+          assigned_user:user_profiles (
             full_name,
             role
           )
@@ -93,7 +95,7 @@ export function useTodayActivities() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as ActivityWithProspect[];
+      return data as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
@@ -113,7 +115,7 @@ export function useBlockedActivities() {
             company_name,
             contact_name
           ),
-          assigned_user:user_profiles!activities_assigned_to_fkey (
+          assigned_user:user_profiles (
             full_name,
             role
           )
@@ -128,7 +130,7 @@ export function useBlockedActivities() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as ActivityWithProspect[];
+      return data as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
@@ -150,7 +152,7 @@ export function useNewCallsActivities() {
             company_name,
             contact_name
           ),
-          assigned_user:user_profiles!activities_assigned_to_fkey (
+          assigned_user:user_profiles (
             full_name,
             role
           )
@@ -169,7 +171,7 @@ export function useNewCallsActivities() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as ActivityWithProspect[];
+      return data as unknown as ActivityWithProspect[];
     },
     enabled: !!user,
   });
@@ -185,7 +187,7 @@ export function useGeneralActivities() {
         .from('activities')
         .select(`
           *,
-          assigned_user:user_profiles!activities_assigned_to_fkey (
+          assigned_user:user_profiles (
             full_name,
             role
           )
@@ -201,7 +203,7 @@ export function useGeneralActivities() {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as (Activity & { assigned_user?: { full_name: string; role: string } | null })[];
+      return data as unknown as (Activity & { assigned_user?: AssignedUser | null })[];
     },
     enabled: !!user,
   });
