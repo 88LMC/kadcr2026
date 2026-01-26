@@ -21,9 +21,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Search, ArrowUpDown, AlertTriangle } from 'lucide-react';
+import { Search, ArrowUpDown, AlertTriangle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import CreateProspectModal from '@/components/prospects/CreateProspectModal';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 
@@ -50,6 +51,7 @@ export default function Gestion() {
   const [phaseFilter, setPhaseFilter] = useState<string>('all');
   const [sortKey, setSortKey] = useState<SortKey>('company_name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -245,7 +247,13 @@ export default function Gestion() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Gestión de Prospectos</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl font-bold">Gestión de Prospectos</h1>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nuevo Prospecto
+        </Button>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -272,6 +280,12 @@ export default function Gestion() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Create Prospect Modal */}
+      <CreateProspectModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+      />
 
       {/* Table */}
       <div className="rounded-md border overflow-x-auto">
