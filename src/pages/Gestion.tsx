@@ -21,10 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Search, ArrowUpDown, AlertTriangle, Plus, User } from 'lucide-react';
+import { Search, ArrowUpDown, AlertTriangle, Plus, User, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import CreateProspectModal from '@/components/prospects/CreateProspectModal';
+import EditProspectModal from '@/components/prospects/EditProspectModal';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 
@@ -53,6 +54,7 @@ export default function Gestion() {
   const [sortKey, setSortKey] = useState<SortKey>('company_name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingProspect, setEditingProspect] = useState<ProspectRow | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -328,12 +330,13 @@ export default function Gestion() {
               <TableHead className="hidden sm:table-cell">
                 <SortButton label="Próx. Act." sortKeyValue="next_activity_date" />
               </TableHead>
+              <TableHead className="w-[100px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProspects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No se encontraron prospectos
                 </TableCell>
               </TableRow>
@@ -399,6 +402,26 @@ export default function Gestion() {
                       {formatDate(prospect.next_activity_date)}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditingProspect(prospect)}
+                        title="Editar prospecto"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        title="Eliminar prospecto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -409,6 +432,13 @@ export default function Gestion() {
       <p className="text-sm text-muted-foreground text-center">
         Mostrando {filteredProspects.length} de {prospects?.length || 0} prospectos
       </p>
+
+      {/* Edit Prospect Modal */}
+      <EditProspectModal
+        prospect={editingProspect}
+        open={!!editingProspect}
+        onOpenChange={(open) => !open && setEditingProspect(null)}
+      />
     </div>
   );
 }
