@@ -92,6 +92,47 @@ export function useTodayActivities() {
   });
 }
 
+export function useWeekActivities() {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['activities', 'week', user?.id],
+    queryFn: async () => {
+      const today = new Date();
+      const nextWeek = new Date();
+      nextWeek.setDate(today.getDate() + 7);
+      
+      const todayStr = today.toISOString().split('T')[0];
+      const nextWeekStr = nextWeek.toISOString().split('T')[0];
+      
+      // RLS handles role-based filtering automatically
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          prospects (
+            company_name,
+            contact_name
+          )
+        `)
+        .eq('status', 'pending')
+        .gt('scheduled_date', todayStr)
+        .lte('scheduled_date', nextWeekStr)
+        .not('prospect_id', 'is', null)
+        .order('scheduled_date', { ascending: true });
+
+      if (error) {
+        console.error('Week activities error:', error);
+        throw error;
+      }
+      
+      console.log('Week activities fetched:', data?.length);
+      return (data || []) as unknown as ActivityWithProspect[];
+    },
+    enabled: !!user,
+  });
+}
+
 export function useBlockedActivities() {
   const { user } = useAuth();
   

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AlertCircle, CalendarCheck, Phone, Ban, ClipboardList } from 'lucide-react';
+import { AlertCircle, CalendarCheck, CalendarDays, Phone, Ban, ClipboardList } from 'lucide-react';
 import { MetricsBar } from '@/components/dashboard/MetricsBar';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
 import { ActivityItem } from '@/components/dashboard/ActivityItem';
@@ -7,6 +7,7 @@ import { GeneralActivityItem } from '@/components/dashboard/GeneralActivityItem'
 import { 
   useUrgentActivities, 
   useTodayActivities, 
+  useWeekActivities,
   useNewCallsActivities,
   useBlockedActivities,
   useGeneralActivities,
@@ -22,9 +23,29 @@ export default function Dashboard() {
   
   const { data: urgentActivities, isLoading: isLoadingUrgent } = useUrgentActivities();
   const { data: todayActivities, isLoading: isLoadingToday } = useTodayActivities();
+  const { data: weekActivities, isLoading: isLoadingWeek } = useWeekActivities();
   const { data: newCallsActivities, isLoading: isLoadingCalls } = useNewCallsActivities();
   const { data: blockedActivities, isLoading: isLoadingBlocked } = useBlockedActivities();
   const { data: generalActivities, isLoading: isLoadingGeneral } = useGeneralActivities();
+
+  // Group week activities by date
+  const groupByDate = (activities: typeof weekActivities) => {
+    const grouped: Record<string, typeof weekActivities> = {};
+    activities?.forEach(activity => {
+      const date = new Date(activity.scheduled_date + 'T12:00:00');
+      const dayName = date.toLocaleDateString('es-CR', { weekday: 'short' });
+      const dateStr = date.toLocaleDateString('es-CR', { day: 'numeric', month: 'short' });
+      const key = `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${dateStr}`;
+      
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key]!.push(activity);
+    });
+    return grouped;
+  };
+
+  const groupedWeekActivities = groupByDate(weekActivities);
   
   const generateDailyCalls = useGenerateDailyCalls();
   const unblockActivity = useUnblockActivity();
@@ -92,6 +113,30 @@ export default function Dashboard() {
               activity={activity}
               variant="today"
             />
+          ))}
+        </DashboardSection>
+
+        {/* This Week Section */}
+        <DashboardSection
+          title="Esta Semana"
+          icon={<CalendarDays className="h-5 w-5 text-primary" />}
+          count={weekActivities?.length || 0}
+          variant="today"
+          isLoading={isLoadingWeek}
+          isEmpty={!weekActivities?.length}
+          emptyMessage="No tienes actividades programadas para esta semana"
+        >
+          {Object.entries(groupedWeekActivities).map(([date, activities]) => (
+            <div key={date} className="mb-3 last:mb-0">
+              <h4 className="font-semibold text-sm text-muted-foreground mb-2 capitalize">{date}</h4>
+              {activities?.map((activity) => (
+                <ActivityItem
+                  key={activity.id}
+                  activity={activity}
+                  variant="today"
+                />
+              ))}
+            </div>
           ))}
         </DashboardSection>
 
