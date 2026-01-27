@@ -5,72 +5,9 @@ import { useActivityLogs, useActivitySummary, DateFilter, ActionFilter } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Activity, BarChart3, Clock, CheckCircle, Plus, Ban, Pencil, LogIn, LogOut, Loader2 } from 'lucide-react';
+import { Users, Activity, BarChart3, Clock, CheckCircle, Plus, Ban, Loader2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-
-const actionIcons: Record<string, { icon: React.ReactNode; color: string }> = {
-  login: { icon: <LogIn className="h-5 w-5" />, color: 'text-blue-500 bg-blue-50' },
-  logout: { icon: <LogOut className="h-5 w-5" />, color: 'text-red-500 bg-red-50' },
-  complete: { icon: <CheckCircle className="h-5 w-5" />, color: 'text-green-500 bg-green-50' },
-  create: { icon: <Plus className="h-5 w-5" />, color: 'text-emerald-500 bg-emerald-50' },
-  block: { icon: <Ban className="h-5 w-5" />, color: 'text-gray-500 bg-gray-100' },
-  update: { icon: <Pencil className="h-5 w-5" />, color: 'text-orange-500 bg-orange-50' },
-};
-
-const getActionTitle = (actionType: string): string => {
-  switch (actionType) {
-    case 'login': return 'LOGIN';
-    case 'logout': return 'LOGOUT';
-    case 'complete': return 'COMPLETÓ ACTIVIDAD';
-    case 'create': return 'CREÓ ACTIVIDAD';
-    case 'block': return 'BLOQUEÓ ACTIVIDAD';
-    case 'update': return 'ACTUALIZÓ PROSPECTO';
-    default: return actionType.toUpperCase();
-  }
-};
-
-const formatDetails = (details: Record<string, any> | null, actionType: string): string | null => {
-  if (!details) return null;
-
-  if (actionType === 'login') {
-    return `Plataforma: ${details.platform || 'web'}`;
-  }
-
-  if (actionType === 'logout') {
-    return null;
-  }
-
-  if (details.prospect && details.activity_type) {
-    return `${details.prospect} - ${details.activity_type}`;
-  }
-
-  if (details.completion_comment) {
-    return `💬 "${details.completion_comment}"`;
-  }
-
-  if (details.block_reason) {
-    return `💬 "${details.block_reason}"`;
-  }
-
-  if (details.company_name) {
-    if (details.changes?.phase_from && details.changes?.phase_to) {
-      return `${details.company_name}: ${details.changes.phase_from} → ${details.changes.phase_to}`;
-    }
-    return details.company_name;
-  }
-
-  if (details.activity_type && details.scheduled_date) {
-    return `${details.activity_type} - ${format(new Date(details.scheduled_date), 'dd MMM', { locale: es })}`;
-  }
-
-  return null;
-};
-
-const formatTime = (timestamp: string): string => {
-  return format(new Date(timestamp), 'hh:mm a', { locale: es });
-};
+import { ActivityLogCard } from '@/components/equipo/ActivityLogCard';
 
 export default function Equipo() {
   const { isManager } = useAuth();
@@ -96,8 +33,6 @@ export default function Equipo() {
   if (salespersons && salespersons.length > 0 && !selectedVendorId) {
     setSelectedVendorId(salespersons[0].id);
   }
-
-  const selectedVendor = salespersons?.find(v => v.id === selectedVendorId);
 
   return (
     <div className="space-y-6">
@@ -153,8 +88,8 @@ export default function Equipo() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{summary.completedCount}</p>
@@ -166,8 +101,8 @@ export default function Equipo() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
-                      <Plus className="h-5 w-5 text-emerald-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                      <Plus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{summary.createdCount}</p>
@@ -179,8 +114,8 @@ export default function Equipo() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                      <Ban className="h-5 w-5 text-gray-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                      <Ban className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{summary.blockedCount}</p>
@@ -192,8 +127,8 @@ export default function Equipo() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                      <Clock className="h-5 w-5 text-blue-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{summary.activeTime}</p>
@@ -242,49 +177,15 @@ export default function Equipo() {
               </div>
             ) : logs && logs.length > 0 ? (
               <div className="space-y-3">
-                {logs.map((log) => {
-                  const actionConfig = actionIcons[log.action_type] || { 
-                    icon: <Activity className="h-5 w-5" />, 
-                    color: 'text-gray-500 bg-gray-50' 
-                  };
-                  const details = formatDetails(log.details as Record<string, any> | null, log.action_type);
-
-                  return (
-                    <Card key={log.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${actionConfig.color}`}>
-                            {actionConfig.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {formatTime(log.created_at)}
-                            </div>
-                            <p className="font-semibold mt-1">
-                              {getActionTitle(log.action_type)}
-                            </p>
-                            {details && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {details}
-                              </p>
-                            )}
-                            {log.action_type === 'login' && log.user_agent && (
-                              <p className="text-xs text-muted-foreground mt-1 truncate">
-                                {log.user_agent.includes('Chrome') ? 'Chrome' : 
-                                 log.user_agent.includes('Firefox') ? 'Firefox' : 
-                                 log.user_agent.includes('Safari') ? 'Safari' : 'Navegador'}
-                                {log.user_agent.includes('Windows') ? ' en Windows' : 
-                                 log.user_agent.includes('Mac') ? ' en Mac' : 
-                                 log.user_agent.includes('Linux') ? ' en Linux' : ''}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                {logs.map((log) => (
+                  <ActivityLogCard 
+                    key={log.id} 
+                    log={{
+                      ...log,
+                      details: log.details as Record<string, any> | null
+                    }} 
+                  />
+                ))}
               </div>
             ) : (
               <Card>
