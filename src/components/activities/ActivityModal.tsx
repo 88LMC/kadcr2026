@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Check, X, Ban, Loader2 } from 'lucide-react';
 import { useCompleteActivity, useBlockActivity, useNotCompleteActivity } from '@/hooks/useActivities';
-import { NextActivityModal } from './NextActivityModal';
+import { MandatoryNextActivityModal } from './MandatoryNextActivityModal';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
@@ -28,6 +28,7 @@ interface ActivityModalProps {
     scheduled_date: string;
     notes?: string | null;
     prospect_id?: string | null;
+    assigned_to?: string | null;
     prospects: {
       company_name: string;
       contact_name: string;
@@ -41,6 +42,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const [modalState, setModalState] = useState<ModalState>('buttons');
   const [comment, setComment] = useState('');
   const [showNextActivityModal, setShowNextActivityModal] = useState(false);
+  const [activityCompleted, setActivityCompleted] = useState(false);
   
   const { toast } = useToast();
   const completeActivity = useCompleteActivity();
@@ -71,16 +73,18 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         comment: comment.trim(),
       });
       
-      toast({
-        title: 'Actividad completada',
-        description: isGeneralActivity ? 'La tarea ha sido marcada como completada.' : 'Ahora programa la siguiente acción.',
-      });
-      
-      handleClose();
-      
-      // Only show next activity modal if it's a prospect activity
+      // If it's a prospect activity, show mandatory next activity modal
       if (result.prospect_id) {
+        setActivityCompleted(true);
         setShowNextActivityModal(true);
+        // DON'T close the completion modal yet - user must create next activity
+      } else {
+        // General task - just close everything
+        toast({
+          title: 'Actividad completada',
+          description: 'La tarea ha sido marcada como completada.',
+        });
+        handleClose();
       }
     } catch (error) {
       toast({
@@ -89,6 +93,15 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         variant: 'destructive',
       });
     }
+  };
+
+  const handleNextActivityCreated = () => {
+    toast({
+      title: 'Actividad completada',
+      description: 'La actividad fue completada y la siguiente acción fue programada.',
+    });
+    setShowNextActivityModal(false);
+    handleClose();
   };
 
   const handleNotComplete = async () => {
@@ -333,13 +346,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         </DialogContent>
       </Dialog>
 
-      {!isGeneralActivity && (
-        <NextActivityModal
+      {!isGeneralActivity && activity.prospect_id && (
+        <MandatoryNextActivityModal
           open={showNextActivityModal}
-          onOpenChange={setShowNextActivityModal}
-          prospectId={activity.prospect_id || undefined}
+          prospectId={activity.prospect_id}
           prospectName={activity.prospects?.company_name || ''}
-          activity={activity}
+          assignedTo={activity.assigned_to}
+          onActivityCreated={handleNextActivityCreated}
         />
       )}
     </>
