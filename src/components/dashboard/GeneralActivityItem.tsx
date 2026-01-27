@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   ClipboardList, 
   AlertCircle,
+  Edit,
 } from 'lucide-react';
 import { ActivityModal } from '@/components/activities/ActivityModal';
+import { EditActivityModal } from '@/components/activities/EditActivityModal';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ActivityType = Database['public']['Enums']['activity_type'];
 type ActivityStatus = Database['public']['Enums']['activity_status'];
@@ -21,11 +25,14 @@ interface GeneralActivityItemProps {
     status: ActivityStatus | null;
     notes?: string | null;
     prospect_id?: string | null;
+    assigned_to?: string | null;
   };
 }
 
 export function GeneralActivityItem({ activity }: GeneralActivityItemProps) {
+  const { isManager } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const getDaysOverdue = () => {
     const today = new Date();
@@ -107,6 +114,22 @@ export function GeneralActivityItem({ activity }: GeneralActivityItemProps) {
                 </div>
               )}
             </div>
+
+            {/* Edit button for managers */}
+            {isManager && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditModalOpen(true);
+                }}
+                title="Editar actividad"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -116,6 +139,14 @@ export function GeneralActivityItem({ activity }: GeneralActivityItemProps) {
         onOpenChange={setIsModalOpen}
         activity={activityForModal}
       />
+
+      {isManager && (
+        <EditActivityModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          activity={activityForModal}
+        />
+      )}
     </>
   );
 }
