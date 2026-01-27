@@ -7,6 +7,7 @@ import {
   LayoutDashboard, 
   Kanban,
   TableProperties,
+  Users,
   LogOut, 
   Plus, 
   Loader2,
@@ -42,6 +43,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const getCurrentTab = () => {
     if (location.pathname === '/pipeline') return 'pipeline';
     if (location.pathname === '/gestion') return 'gestion';
+    if (location.pathname === '/equipo') return 'equipo';
     return 'dashboard';
   };
 
@@ -54,6 +56,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         break;
       case 'gestion':
         navigate('/gestion');
+        break;
+      case 'equipo':
+        navigate('/equipo');
         break;
       default:
         navigate('/dashboard');
@@ -98,6 +103,12 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <TableProperties className="h-4 w-4" />
                   Gestión
                 </TabsTrigger>
+                {isManager && (
+                  <TabsTrigger value="equipo" className="gap-2">
+                    <Users className="h-4 w-4" />
+                    Equipo
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
           </div>
@@ -158,6 +169,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <TableProperties className="h-4 w-4" />
                 Gestión
               </Button>
+              {isManager && (
+                <Button
+                  variant={currentTab === 'equipo' ? 'default' : 'ghost'}
+                  className="justify-start gap-2"
+                  onClick={() => handleTabChange('equipo')}
+                >
+                  <Users className="h-4 w-4" />
+                  Equipo
+                </Button>
+              )}
             </div>
           </div>
         </div>
