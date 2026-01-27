@@ -23,6 +23,46 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Activity logging functions
+const logLogin = async (userId: string) => {
+  try {
+    await supabase.from('activity_logs').insert({
+      user_id: userId,
+      action_type: 'login',
+      entity_type: null,
+      entity_id: null,
+      details: {
+        timestamp: new Date().toISOString(),
+        platform: 'web'
+      },
+      ip_address: null,
+      user_agent: navigator.userAgent
+    });
+    console.log('Login logged successfully');
+  } catch (error) {
+    console.error('Error logging login:', error);
+  }
+};
+
+const logLogout = async (userId: string) => {
+  try {
+    await supabase.from('activity_logs').insert({
+      user_id: userId,
+      action_type: 'logout',
+      entity_type: null,
+      entity_id: null,
+      details: {
+        timestamp: new Date().toISOString()
+      },
+      ip_address: null,
+      user_agent: navigator.userAgent
+    });
+    console.log('Logout logged successfully');
+  } catch (error) {
+    console.error('Error logging logout:', error);
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -81,14 +121,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // Log login on success
+    if (!error && data.user) {
+      await logLogin(data.user.id);
+    }
+    
     return { error };
   };
 
   const signOut = async () => {
+    // Log logout before signing out (while we still have user id)
+    if (user) {
+      await logLogout(user.id);
+    }
+    
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
