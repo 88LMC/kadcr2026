@@ -12,11 +12,14 @@ import {
   FileCheck, 
   MoreHorizontal,
   AlertCircle,
-  Ban
+  Ban,
+  Edit
 } from 'lucide-react';
 import { ActivityModal } from '@/components/activities/ActivityModal';
+import { EditActivityModal } from '@/components/activities/EditActivityModal';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 type ActivityType = Database['public']['Enums']['activity_type'];
 type ActivityStatus = Database['public']['Enums']['activity_status'];
@@ -31,6 +34,7 @@ interface ActivityItemProps {
     notes?: string | null;
     block_reason?: string | null;
     prospect_id?: string | null;
+    assigned_to?: string | null;
     prospects: {
       company_name: string;
       contact_name: string;
@@ -53,8 +57,13 @@ const activityIcons: Record<ActivityType, typeof Phone> = {
   'Otro': MoreHorizontal,
 };
 
-export function ActivityItem({ activity, variant = 'today', isManager, onUnblock }: ActivityItemProps) {
+export function ActivityItem({ activity, variant = 'today', isManager: isManagerProp, onUnblock }: ActivityItemProps) {
+  const { isManager: isAuthManager } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Use prop if provided, otherwise use auth context
+  const isManager = isManagerProp !== undefined ? isManagerProp : isAuthManager;
 
   const Icon = activityIcons[activity.activity_type] || MoreHorizontal;
   
@@ -163,6 +172,22 @@ export function ActivityItem({ activity, variant = 'today', isManager, onUnblock
               )}
             </div>
 
+            {/* Edit button for managers */}
+            {isManager && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditModalOpen(true);
+                }}
+                title="Editar actividad"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+
             {variant === 'blocked' && isManager && (
               <Button
                 variant="outline"
@@ -183,6 +208,14 @@ export function ActivityItem({ activity, variant = 'today', isManager, onUnblock
         <ActivityModal
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
+          activity={activity}
+        />
+      )}
+
+      {isManager && (
+        <EditActivityModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
           activity={activity}
         />
       )}
