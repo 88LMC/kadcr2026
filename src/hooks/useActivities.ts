@@ -246,8 +246,9 @@ export function useCompleteActivity() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
 }
@@ -268,8 +269,9 @@ export function useNotCompleteActivity() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
 }
@@ -290,8 +292,9 @@ export function useBlockActivity() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
 }
@@ -311,8 +314,9 @@ export function useUnblockActivity() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
 }
@@ -322,11 +326,36 @@ export function useCreateActivity() {
 
   return useMutation({
     mutationFn: async (activity: Omit<ActivityInsert, 'id' | 'created_at'>) => {
-      const { error } = await supabase.from('activities').insert(activity);
-      if (error) throw error;
+      console.log('Creating activity:', activity);
+      const { data, error } = await supabase
+        .from('activities')
+        .insert(activity)
+        .select();
+      
+      if (error) {
+        console.error('Error creating activity:', error);
+        throw error;
+      }
+      
+      console.log('Activity created successfully:', data);
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    onSuccess: async (data) => {
+      console.log('Mutation success, invalidating all activity queries...');
+      
+      // Invalidate all activity-related queries with refetchType 'all' to ensure immediate refetch
+      await queryClient.invalidateQueries({ 
+        queryKey: ['activities'],
+        refetchType: 'all',
+      });
+      
+      // Also invalidate prospect activities for the ProspectActivitiesModal
+      await queryClient.invalidateQueries({ 
+        queryKey: ['prospect-activities'],
+        refetchType: 'all',
+      });
+      
+      console.log('All activity queries invalidated and refetched');
     },
   });
 }
@@ -418,8 +447,9 @@ export function useGenerateDailyCalls() {
 
       return { generated: newActivities.length };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
 }
