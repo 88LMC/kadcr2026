@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +49,21 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const notCompleteActivity = useNotCompleteActivity();
   const blockActivity = useBlockActivity();
 
+  // Reset state when modal closes (not opens) to ensure clean state for next time
+  useEffect(() => {
+    if (!open) {
+      console.log('Modal closed, resetting state for next open');
+      // Small delay to allow animations to complete
+      const timeout = setTimeout(() => {
+        setModalState('buttons');
+        setComment('');
+        setShowNextActivityModal(false);
+        setActivityCompleted(false);
+      }, 200);
+      return () => clearTimeout(timeout);
+    }
+  }, [open]);
+
   const isGeneralActivity = !activity.prospect_id;
   const minCommentLength = 10;
 
@@ -67,19 +82,31 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const handleComplete = async () => {
     if (!validateComment()) return;
 
+    console.log('handleComplete called');
+    console.log('Activity:', activity);
+    console.log('Has prospect_id:', !!activity.prospect_id);
+    console.log('Is general activity:', isGeneralActivity);
+
     try {
       const result = await completeActivity.mutateAsync({
         activityId: activity.id,
         comment: comment.trim(),
       });
       
+      console.log('Complete mutation result:', result);
+      console.log('result.prospect_id:', result?.prospect_id);
+      
       // If it's a prospect activity, show mandatory next activity modal
-      if (result.prospect_id) {
+      // Check the original activity's prospect_id, not just the result
+      if (activity.prospect_id) {
+        console.log('Showing next activity modal for prospect:', activity.prospect_id);
         setActivityCompleted(true);
         setShowNextActivityModal(true);
-        // DON'T close the completion modal yet - user must create next activity
+        // DON'T close the completion modal yet - keep it hidden but don't call onOpenChange
+        // The modal will stay "open" but we'll show the next activity modal instead
       } else {
         // General task - just close everything
+        console.log('General task completed, closing modal');
         toast({
           title: 'Actividad completada',
           description: 'La tarea ha sido marcada como completada.',
@@ -87,6 +114,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         handleClose();
       }
     } catch (error) {
+      console.error('Error completing activity:', error);
       toast({
         title: 'Error',
         description: 'No se pudo completar la actividad.',
@@ -96,11 +124,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   };
 
   const handleNextActivityCreated = () => {
+    console.log('Next activity created, closing all modals');
     toast({
       title: 'Actividad completada',
       description: 'La actividad fue completada y la siguiente acción fue programada.',
     });
     setShowNextActivityModal(false);
+    setActivityCompleted(false);
     handleClose();
   };
 
@@ -213,9 +243,22 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
 
   const stateContent = getStateContent();
 
+  // Don't allow closing the modal if we're in the next activity flow
+  const handleDialogClose = (newOpen: boolean) => {
+    if (showNextActivityModal) {
+      // Don't close while showing next activity modal
+      console.log('Preventing close - next activity modal is open');
+      return;
+    }
+    if (!newOpen) {
+      handleClose();
+    }
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={handleClose}>
+      {/* Hide the main dialog when showing the next activity modal */}
+      <Dialog open={open && !showNextActivityModal} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           {modalState === 'buttons' ? (
             <>
