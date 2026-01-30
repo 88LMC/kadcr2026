@@ -174,6 +174,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_prospects_for_daily_calls: {
+        Args: never
+        Returns: {
+          company_name: string
+          id: string
+        }[]
+      }
       get_user_activity_stats: {
         Args: { p_user_id: string }
         Returns: {
