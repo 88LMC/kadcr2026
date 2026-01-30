@@ -369,85 +369,104 @@ export function useGenerateDailyCalls() {
       const dayOfWeek = today.getDay();
       const todayStr = today.toISOString().split('T')[0];
       
+      console.log('generateDailyCalls: Starting...', { dayOfWeek, todayStr });
+      
       // Only generate calls Monday (1) to Thursday (4)
       if (dayOfWeek < 1 || dayOfWeek > 4) {
+        console.log('generateDailyCalls: Not a workday (Mon-Thu), skipping');
         return { generated: 0, message: 'Solo se generan llamadas de Lunes a Jueves' };
       }
       
-      // Check if daily calls already exist for today
-      const { data: existingCalls, error: checkError } = await supabase
+      // Check if daily calls already exist for today (system-generated)
+      const { count, error: checkError } = await supabase
         .from('activities')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('activity_type', 'Llamada')
-        .eq('scheduled_date', todayStr)
-        .eq('created_by', 'system');
+        .eq('created_by', 'system')
+        .gte('created_at', todayStr);
 
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error('generateDailyCalls: Error checking existing calls:', checkError);
+        throw checkError;
+      }
       
-      if (existingCalls && existingCalls.length >= 3) {
-        return { generated: 0, message: 'Calls already generated for today' };
-      }
-
-      const callsToGenerate = 3 - (existingCalls?.length || 0);
-
-      // Get prospects in 'Prospección' phase
-      const { data: prospects, error: prospectsError } = await supabase
-        .from('prospects')
-        .select('id')
-        .eq('current_phase', 'Prospección');
-
-      if (prospectsError) throw prospectsError;
-      if (!prospects || prospects.length === 0) {
-        return { generated: 0, message: 'No prospects available' };
-      }
-
-      // Get prospects that already have a call today
-      const { data: prospectsWithCalls, error: callsError } = await supabase
-        .from('activities')
-        .select('prospect_id')
-        .eq('activity_type', 'Llamada')
-        .eq('scheduled_date', todayStr);
-
-      if (callsError) throw callsError;
-
-      const prospectsWithCallsIds = new Set(prospectsWithCalls?.map(c => c.prospect_id) || []);
-      const availableProspects = prospects.filter(p => !prospectsWithCallsIds.has(p.id));
-
-      if (availableProspects.length === 0) {
-        return { generated: 0, message: 'All prospects already have calls today' };
+      if (count && count > 0) {
+        console.log('generateDailyCalls: Calls already generated today, count:', count);
+        return { generated: 0, message: 'Llamadas ya generadas hoy' };
       }
 
       // Get a salesperson to assign calls to
-      const { data: salesperson } = await supabase
+      const { data: salesperson, error: vendorError } = await supabase
         .from('user_profiles')
         .select('id')
         .eq('role', 'salesperson')
         .limit(1)
         .maybeSingle();
 
-      // Shuffle and take up to callsToGenerate
-      const shuffled = availableProspects.sort(() => Math.random() - 0.5);
-      const selectedProspects = shuffled.slice(0, Math.min(callsToGenerate, shuffled.length));
+      if (vendorError) {
+        console.error('generateDailyCalls: Error finding salesperson:', vendorError);
+        throw vendorError;
+      }
 
-      // Create activities
-      const newActivities = selectedProspects.map(p => ({
+      if (!salesperson) {
+        console.log('generateDailyCalls: No salesperson found');
+        return { generated: 0, message: 'No se encontró vendedor' };
+      }
+
+      console.log('generateDailyCalls: Salesperson found:', salesperson.id);
+
+      // Use smart filter SQL function to get eligible prospects
+      const { data: prospects, error: prospectsError } = await supabase
+        .rpc('get_prospects_for_daily_calls');
+
+      if (prospectsError) {
+        console.error('generateDailyCalls: Error getting eligible prospects:', prospectsError);
+        throw prospectsError;
+      }
+
+      console.log('generateDailyCalls: Eligible prospects:', prospects);
+
+      if (!prospects || prospects.length === 0) {
+        console.log('generateDailyCalls: No eligible prospects found');
+        return { 
+          generated: 0, 
+          message: 'No hay prospectos elegibles (sin contacto reciente)' 
+        };
+      }
+
+      // Create activities for eligible prospects (max 3)
+      const newActivities = prospects.slice(0, 3).map((p: { id: string; company_name: string }) => ({
         prospect_id: p.id,
         activity_type: 'Llamada' as ActivityType,
         scheduled_date: todayStr,
         status: 'pending' as ActivityStatus,
         created_by: 'system' as const,
-        notes: 'Primera llamada de calificación',
-        assigned_to: salesperson?.id || null,
+        notes: `Primera llamada de calificación - ${p.company_name}`,
+        assigned_to: salesperson.id,
       }));
 
-      if (newActivities.length > 0) {
-        const { error: insertError } = await supabase.from('activities').insert(newActivities);
-        if (insertError) throw insertError;
+      console.log('generateDailyCalls: Creating activities:', newActivities.length);
+
+      const { error: insertError } = await supabase
+        .from('activities')
+        .insert(newActivities);
+
+      if (insertError) {
+        console.error('generateDailyCalls: Error inserting activities:', insertError);
+        throw insertError;
       }
 
-      return { generated: newActivities.length };
+      console.log(`generateDailyCalls: Successfully created ${newActivities.length} calls`);
+      
+      return { 
+        generated: newActivities.length,
+        message: newActivities.length < 3 
+          ? `${newActivities.length} llamadas generadas (no hay más prospectos disponibles)`
+          : `${newActivities.length} llamadas generadas`
+      };
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      console.log('generateDailyCalls: Success callback', result);
       await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
       await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
