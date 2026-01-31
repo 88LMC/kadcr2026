@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -67,12 +68,28 @@ export function MandatoryNextActivityModal({
   const [description, setDescription] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [showCloseWarning, setShowCloseWarning] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const { toast } = useToast();
   const { isManager } = useAuth();
   const createActivity = useCreateActivity();
 
   const minDescriptionLength = 5;
+
+  // Ensure we're mounted on client for portal
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('=== MandatoryNextActivityModal RENDER ===');
+    console.log('open:', open);
+    console.log('prospectId:', prospectId);
+    console.log('prospectName:', prospectName);
+    console.log('mounted:', mounted);
+  }, [open, prospectId, prospectName, mounted]);
 
   const validateFields = (): boolean => {
     if (!activityType) {
@@ -148,11 +165,20 @@ export function MandatoryNextActivityModal({
     }
   };
 
-  return (
+  // Don't render until mounted (for portal)
+  if (!mounted || !open) {
+    console.log('MandatoryNextActivityModal: Not rendering - mounted:', mounted, 'open:', open);
+    return null;
+  }
+
+  console.log('MandatoryNextActivityModal: Rendering portal to document.body');
+
+  // Use portal to render directly to document.body to avoid parent dialog interference
+  return createPortal(
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={true} onOpenChange={handleOpenChange}>
         <DialogContent 
-          className="sm:max-w-md"
+          className="sm:max-w-md z-[100]"
           onPointerDownOutside={(e) => {
             e.preventDefault();
             setShowCloseWarning(true);
@@ -220,7 +246,7 @@ export function MandatoryNextActivityModal({
                     {scheduledDate ? format(scheduledDate, 'PPP', { locale: es }) : 'Selecciona una fecha'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[110]" align="start">
                   <Calendar
                     mode="single"
                     selected={scheduledDate}
@@ -273,7 +299,7 @@ export function MandatoryNextActivityModal({
 
       {/* Warning dialog when trying to close */}
       <AlertDialog open={showCloseWarning} onOpenChange={setShowCloseWarning}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[120]">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
@@ -292,6 +318,7 @@ export function MandatoryNextActivityModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </>,
+    document.body
   );
 }
