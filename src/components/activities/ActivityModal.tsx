@@ -49,20 +49,19 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const notCompleteActivity = useNotCompleteActivity();
   const blockActivity = useBlockActivity();
 
-  // Reset state when modal closes (not opens) to ensure clean state for next time
+  // Reset state when modal closes - but ONLY if we're not showing the next activity modal
   useEffect(() => {
-    if (!open) {
-      console.log('Modal closed, resetting state for next open');
+    if (!open && !showNextActivityModal) {
+      console.log('Modal fully closed, resetting state for next open');
       // Small delay to allow animations to complete
       const timeout = setTimeout(() => {
         setModalState('buttons');
         setComment('');
-        setShowNextActivityModal(false);
         setActivityCompleted(false);
       }, 200);
       return () => clearTimeout(timeout);
     }
-  }, [open]);
+  }, [open, showNextActivityModal]);
 
   const isGeneralActivity = !activity.prospect_id;
   const minCommentLength = 10;
@@ -99,9 +98,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       // If it's a prospect activity, show mandatory next activity modal
       // Check the original activity's prospect_id, not just the result
       if (activity.prospect_id) {
+        console.log('=== NEXT ACTIVITY MODAL TRIGGER ===');
         console.log('Showing next activity modal for prospect:', activity.prospect_id);
+        console.log('Prospect name:', activity.prospects?.company_name);
+        console.log('Setting showNextActivityModal to true');
         setActivityCompleted(true);
         setShowNextActivityModal(true);
+        console.log('showNextActivityModal state should now be true');
         // DON'T close the completion modal yet - keep it hidden but don't call onOpenChange
         // The modal will stay "open" but we'll show the next activity modal instead
       } else {
@@ -129,9 +132,12 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       title: 'Actividad completada',
       description: 'La actividad fue completada y la siguiente acción fue programada.',
     });
+    // Reset all states and close
     setShowNextActivityModal(false);
     setActivityCompleted(false);
-    handleClose();
+    setModalState('buttons');
+    setComment('');
+    onOpenChange(false);
   };
 
   const handleNotComplete = async () => {
@@ -254,6 +260,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       handleClose();
     }
   };
+
+  // Debug render state
+  console.log('=== ACTIVITY MODAL RENDER ===');
+  console.log('open:', open);
+  console.log('showNextActivityModal:', showNextActivityModal);
+  console.log('activity.prospect_id:', activity?.prospect_id);
+  console.log('Main dialog open state:', open && !showNextActivityModal);
 
   return (
     <>
@@ -389,14 +402,22 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         </DialogContent>
       </Dialog>
 
-      {!isGeneralActivity && activity.prospect_id && (
-        <MandatoryNextActivityModal
-          open={showNextActivityModal}
-          prospectId={activity.prospect_id}
-          prospectName={activity.prospects?.company_name || ''}
-          assignedTo={activity.assigned_to}
-          onActivityCreated={handleNextActivityCreated}
-        />
+      {/* Always render MandatoryNextActivityModal when we have a prospect_id */}
+      {activity.prospect_id && (
+        <>
+          {console.log('=== MANDATORY MODAL RENDER CHECK ===', {
+            showNextActivityModal,
+            prospectId: activity.prospect_id,
+            prospectName: activity.prospects?.company_name,
+          })}
+          <MandatoryNextActivityModal
+            open={showNextActivityModal}
+            prospectId={activity.prospect_id}
+            prospectName={activity.prospects?.company_name || ''}
+            assignedTo={activity.assigned_to}
+            onActivityCreated={handleNextActivityCreated}
+          />
+        </>
       )}
     </>
   );
