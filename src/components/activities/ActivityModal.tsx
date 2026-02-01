@@ -49,7 +49,6 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const [modalState, setModalState] = useState<ModalState>('buttons');
   const [comment, setComment] = useState('');
   const [showNextActivityModal, setShowNextActivityModal] = useState(false);
-  // Preserve completed activity data in a ref to survive re-renders
   const completedDataRef = useRef<CompletedActivityData | null>(null);
   
   const { toast } = useToast();
@@ -64,16 +63,24 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     console.log('completedDataRef.current:', completedDataRef.current);
   }, [showNextActivityModal]);
 
-  // Reset state when modal fully closes (not showing next activity modal)
+  // CRÍTICO: Solo resetear si AMBOS modales están cerrados
   useEffect(() => {
+    console.log('=== RESET EFFECT ===');
+    console.log('open:', open);
+    console.log('showNextActivityModal:', showNextActivityModal);
+    
+    // Solo resetear si el modal principal está cerrado Y no estamos mostrando el de siguiente
     if (!open && !showNextActivityModal) {
-      console.log('Modal fully closed, resetting all state');
+      console.log('Both modals closed, will reset state');
       const timeout = setTimeout(() => {
+        console.log('Resetting state now');
         setModalState('buttons');
         setComment('');
         completedDataRef.current = null;
       }, 200);
       return () => clearTimeout(timeout);
+    } else {
+      console.log('NOT resetting - at least one modal is open');
     }
   }, [open, showNextActivityModal]);
 
@@ -94,21 +101,17 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
 
   const handleComplete = async () => {
     console.log('=== handleComplete CALLED ===');
-    console.log('validateComment result:', validateComment());
     
     if (!validateComment()) return;
 
     try {
-      // CRÍTICO: Guardar datos ANTES de la mutación
       const originalProspectId = activity?.prospect_id;
       const originalProspectName = activity?.prospects?.company_name;
       const originalAssignedTo = activity?.assigned_to;
 
       console.log('=== BEFORE COMPLETE ===');
-      console.log('activity object:', activity);
       console.log('Original prospect_id:', originalProspectId);
       console.log('Original prospect_name:', originalProspectName);
-      console.log('Original assigned_to:', originalAssignedTo);
 
       await completeActivity.mutateAsync({
         activityId: activity.id,
@@ -116,36 +119,25 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       });
 
       console.log('=== AFTER COMPLETE MUTATION ===');
-      console.log('Mutation completed successfully');
 
-      // Usar datos ORIGINALES guardados
       if (originalProspectId) {
-        console.log('=== HAS PROSPECT - SETTING UP NEXT MODAL ===');
+        console.log('=== SETTING UP NEXT MODAL ===');
         
-        // Guardar en el ref
         completedDataRef.current = {
           prospectId: originalProspectId,
           prospectName: originalProspectName || "Cliente",
           assignedTo: originalAssignedTo || null
         };
         
-        console.log('completedDataRef.current set to:', completedDataRef.current);
-        console.log('About to call setShowNextActivityModal(true)...');
+        console.log('Data preserved:', completedDataRef.current);
+        console.log('Setting showNextActivityModal to TRUE');
         
         setShowNextActivityModal(true);
         
-        console.log('setShowNextActivityModal(true) called');
-        console.log('Current showNextActivityModal state:', showNextActivityModal);
-        
-        // Verificar en el siguiente tick
-        setTimeout(() => {
-          console.log('=== AFTER STATE UPDATE (next tick) ===');
-          console.log('showNextActivityModal:', showNextActivityModal);
-          console.log('completedDataRef.current:', completedDataRef.current);
-        }, 0);
+        console.log('State update dispatched');
         
       } else {
-        console.log('=== NO PROSPECT - CLOSING NORMALLY ===');
+        console.log('=== NO PROSPECT - CLOSING ===');
         toast({
           title: 'Actividad completada',
           description: 'La tarea general fue completada.',
@@ -153,8 +145,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         handleClose();
       }
     } catch (error: any) {
-      console.error('=== ERROR IN handleComplete ===');
-      console.error('Error:', error);
+      console.error('=== ERROR ===', error);
       toast({
         title: 'Error',
         description: error.message || "Error al completar la actividad",
@@ -164,12 +155,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   };
 
   const handleNextActivityCreated = () => {
-    console.log('Next activity created, closing all modals');
+    console.log('=== NEXT ACTIVITY CREATED ===');
     toast({
       title: 'Actividad completada',
       description: 'La actividad fue completada y la siguiente acción fue programada.',
     });
-    // Reset all states and close
+    
+    // Cerrar todo
     setShowNextActivityModal(false);
     completedDataRef.current = null;
     setModalState('buttons');
@@ -286,11 +278,9 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
 
   const stateContent = getStateContent();
 
-  // Don't allow closing the modal if we're in the next activity flow
   const handleDialogClose = (newOpen: boolean) => {
     if (showNextActivityModal) {
-      // Don't close while showing next activity modal
-      console.log('Preventing close - next activity modal is open');
+      console.log('Blocking close - next activity modal open');
       return;
     }
     if (!newOpen) {
@@ -298,17 +288,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     }
   };
 
-  // Debug render state
-  console.log('=== ACTIVITY MODAL RENDER ===');
+  console.log('=== RENDER ===');
   console.log('open:', open);
   console.log('showNextActivityModal:', showNextActivityModal);
-  console.log('activity.prospect_id:', activity?.prospect_id);
-  console.log('completedDataRef.current:', completedDataRef.current);
-  console.log('Main dialog open state:', open && !showNextActivityModal);
+  console.log('completedDataRef:', completedDataRef.current);
 
   return (
     <>
-      {/* Hide the main dialog when showing the next activity modal */}
       <Dialog open={open && !showNextActivityModal} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           {modalState === 'buttons' ? (
@@ -440,7 +426,6 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         </DialogContent>
       </Dialog>
 
-      {/* Render NextActivityPortal using preserved data from ref */}
       <NextActivityPortal
         isOpen={showNextActivityModal}
         prospectId={completedDataRef.current?.prospectId || ''}
