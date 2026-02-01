@@ -93,6 +93,9 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   };
 
   const handleComplete = async () => {
+    console.log('=== handleComplete CALLED ===');
+    console.log('validateComment result:', validateComment());
+    
     if (!validateComment()) return;
 
     try {
@@ -102,36 +105,47 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       const originalAssignedTo = activity?.assigned_to;
 
       console.log('=== BEFORE COMPLETE ===');
+      console.log('activity object:', activity);
       console.log('Original prospect_id:', originalProspectId);
       console.log('Original prospect_name:', originalProspectName);
-      console.log('Comment:', comment.trim());
+      console.log('Original assigned_to:', originalAssignedTo);
 
       await completeActivity.mutateAsync({
         activityId: activity.id,
         comment: comment.trim(),
       });
 
-      console.log('=== AFTER COMPLETE ===');
-      console.log('Activity completed successfully');
+      console.log('=== AFTER COMPLETE MUTATION ===');
+      console.log('Mutation completed successfully');
 
       // Usar datos ORIGINALES guardados
       if (originalProspectId) {
-        console.log('=== SHOWING NEXT MODAL ===');
-        console.log('Preserving data in ref...');
+        console.log('=== HAS PROSPECT - SETTING UP NEXT MODAL ===');
         
-        // Guardar en el ref para que sobreviva re-renders
+        // Guardar en el ref
         completedDataRef.current = {
           prospectId: originalProspectId,
           prospectName: originalProspectName || "Cliente",
           assignedTo: originalAssignedTo || null
         };
         
+        console.log('completedDataRef.current set to:', completedDataRef.current);
+        console.log('About to call setShowNextActivityModal(true)...');
+        
         setShowNextActivityModal(true);
         
-        console.log('Next modal state updated, ref:', completedDataRef.current);
-        // NO cerrar el modal aquí - esperar a crear siguiente
+        console.log('setShowNextActivityModal(true) called');
+        console.log('Current showNextActivityModal state:', showNextActivityModal);
+        
+        // Verificar en el siguiente tick
+        setTimeout(() => {
+          console.log('=== AFTER STATE UPDATE (next tick) ===');
+          console.log('showNextActivityModal:', showNextActivityModal);
+          console.log('completedDataRef.current:', completedDataRef.current);
+        }, 0);
+        
       } else {
-        console.log('No prospect_id - closing normally');
+        console.log('=== NO PROSPECT - CLOSING NORMALLY ===');
         toast({
           title: 'Actividad completada',
           description: 'La tarea general fue completada.',
@@ -139,7 +153,8 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         handleClose();
       }
     } catch (error: any) {
-      console.error('Error completing activity:', error);
+      console.error('=== ERROR IN handleComplete ===');
+      console.error('Error:', error);
       toast({
         title: 'Error',
         description: error.message || "Error al completar la actividad",
@@ -288,6 +303,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   console.log('open:', open);
   console.log('showNextActivityModal:', showNextActivityModal);
   console.log('activity.prospect_id:', activity?.prospect_id);
+  console.log('completedDataRef.current:', completedDataRef.current);
   console.log('Main dialog open state:', open && !showNextActivityModal);
 
   return (
@@ -425,15 +441,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       </Dialog>
 
       {/* Render NextActivityPortal using preserved data from ref */}
-      {completedDataRef.current && (
-        <NextActivityPortal
-          isOpen={showNextActivityModal}
-          prospectId={completedDataRef.current.prospectId}
-          prospectName={completedDataRef.current.prospectName}
-          assignedTo={completedDataRef.current.assignedTo}
-          onComplete={handleNextActivityCreated}
-        />
-      )}
+      <NextActivityPortal
+        isOpen={showNextActivityModal}
+        prospectId={completedDataRef.current?.prospectId || ''}
+        prospectName={completedDataRef.current?.prospectName || ''}
+        assignedTo={completedDataRef.current?.assignedTo}
+        onComplete={handleNextActivityCreated}
+      />
     </>
   );
 }
