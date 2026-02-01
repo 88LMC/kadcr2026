@@ -93,58 +93,57 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   };
 
   const handleComplete = async () => {
-    if (!validateComment()) return;
+  if (!completionComment || completionComment.trim().length < 10) {
+    toast.error("El comentario debe tener al menos 10 caracteres");
+    return;
+  }
 
-    console.log('handleComplete called');
-    console.log('Activity:', activity);
-    console.log('Has prospect_id:', !!activity.prospect_id);
-    console.log('Is general activity:', isGeneralActivity);
+  try {
+    // CRÍTICO: Guardar datos ANTES de la mutación
+    const originalProspectId = activity?.prospect_id;
+    const originalProspectName = activity?.prospects?.company_name;
+    const originalAssignedTo = activity?.assigned_to;
 
-    // CRITICAL: Preserve activity data BEFORE the mutation changes anything
-    if (activity.prospect_id) {
-      completedDataRef.current = {
-        prospectId: activity.prospect_id,
-        prospectName: activity.prospects?.company_name || '',
-        assignedTo: activity.assigned_to || null,
-      };
-      console.log('Preserved activity data:', completedDataRef.current);
-    }
+    console.log('=== BEFORE COMPLETE ===');
+    console.log('Original prospect_id:', originalProspectId);
+    console.log('Original prospect_name:', originalProspectName);
 
-    try {
-      const result = await completeActivity.mutateAsync({
-        activityId: activity.id,
-        comment: comment.trim(),
+    const result = await completeMutation.mutateAsync({
+      activityId: activity.id,
+      status: 'completed',
+      completionComment: completionComment,
+      completedAt: new Date().toISOString()
+    });
+
+    console.log('=== AFTER COMPLETE ===');
+    console.log('Mutation result:', result);
+
+    // Usar datos ORIGINALES guardados (no el result)
+    if (originalProspectId) {
+      console.log('=== SHOWING NEXT MODAL ===');
+      console.log('Setting next activity data...');
+      
+      setPreservedActivityData({
+        prospectId: originalProspectId,
+        prospectName: originalProspectName || "Cliente",
+        assignedTo: originalAssignedTo || user?.id || ''
       });
       
-      console.log('Complete mutation result:', result);
+      setShowNextActivityModal(true);
       
-      // If it's a prospect activity, show mandatory next activity modal
-      if (completedDataRef.current) {
-        console.log('=== NEXT ACTIVITY MODAL TRIGGER ===');
-        console.log('Using preserved data:', completedDataRef.current);
-        console.log('Setting showNextActivityModal to true');
-        setShowNextActivityModal(true);
-        // DON'T close the modal - we'll hide it and show the next activity modal
-      } else {
-        // General task - just close everything
-        console.log('General task completed, closing modal');
-        toast({
-          title: 'Actividad completada',
-          description: 'La tarea ha sido marcada como completada.',
-        });
-        handleClose();
-      }
-    } catch (error) {
-      console.error('Error completing activity:', error);
-      completedDataRef.current = null; // Clear on error
-      toast({
-        title: 'Error',
-        description: 'No se pudo completar la actividad.',
-        variant: 'destructive',
-      });
+      console.log('Next modal state updated');
+      // NO cerrar el modal aquí - esperar a crear siguiente
+    } else {
+      console.log('No prospect_id - closing normally');
+      toast.success("Actividad completada");
+      onClose();
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
     }
-  };
-
+  } catch (error: any) {
+    console.error('Error completing activity:', error);
+    toast.error(error.message || "Error al completar la actividad");
+  }
+};
   const handleNextActivityCreated = () => {
     console.log('Next activity created, closing all modals');
     toast({
