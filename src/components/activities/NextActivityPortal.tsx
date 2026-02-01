@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect, type FormEvent } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -90,39 +89,47 @@ export function NextActivityPortal({
     setShowWarning(true);
   };
 
+  const handleFormSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void handleSubmit();
+  };
+
   if (!isOpen) {
     return null;
   }
 
-  console.log('NextActivityPortal: RENDERING TO DOCUMENT.BODY');
+  console.log('NextActivityPortal: RENDERING INLINE (NO PORTAL)');
 
-  return createPortal(
-    <div 
+  return (
+    <div
       className="fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: 99999 }}
+      onMouseDown={(e) => {
+        // Bloquear cierre por click fuera
+        if (e.target === e.currentTarget) {
+          handleTryClose();
+        }
+      }}
     >
-      {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black/80" 
-        onClick={handleTryClose}
-      />
-      
+      {/* Overlay (usar tokens, evitar colores hardcodeados) */}
+      <div className="absolute inset-0 bg-foreground/80" />
+
       {/* Modal */}
-      <div 
+      <div
         className="relative bg-background rounded-lg shadow-2xl w-full max-w-md border-2 border-warning animate-in fade-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              📋 Siguiente acción
-            </h2>
+            <h2 className="text-lg font-semibold">Siguiente acción</h2>
             <p className="text-sm text-muted-foreground">{prospectName}</p>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={handleTryClose}
             className="p-1 rounded hover:bg-muted transition-colors"
+            aria-label="Cerrar"
           >
             <X className="h-5 w-5" />
           </button>
@@ -131,19 +138,18 @@ export function NextActivityPortal({
         {/* Warning banner */}
         <div className="mx-4 mt-4 flex items-start gap-2 p-3 rounded-lg bg-warning/20 border border-warning">
           <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">
-            ⚠️ OBLIGATORIO: Debes definir la siguiente acción
-          </p>
+          <p className="text-sm font-medium">OBLIGATORIO: Debes definir la siguiente acción</p>
         </div>
 
-        {/* Form */}
-        <div className="p-4 space-y-4">
+        {/* Form (nativo) */}
+        <form className="p-4 space-y-4" onSubmit={handleFormSubmit}>
           {/* Activity Type */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Tipo de actividad <span className="text-destructive">*</span>
             </label>
-            <select 
+            <select
+              name="type"
               value={activityType}
               onChange={(e) => setActivityType(e.target.value as ActivityType)}
               className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -174,7 +180,7 @@ export function NextActivityPortal({
               <CalendarIcon className="h-4 w-4" />
               {scheduledDate ? format(scheduledDate, 'PPP', { locale: es }) : 'Selecciona una fecha'}
             </button>
-            
+
             {showCalendar && (
               <div className="border rounded-md bg-background shadow-lg">
                 <Calendar
@@ -197,6 +203,7 @@ export function NextActivityPortal({
               Descripción <span className="text-destructive">*</span>
             </label>
             <textarea
+              name="description"
               placeholder="Ej: Enviar contrato para firma, Llamar para confirmar reunión..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -205,17 +212,11 @@ export function NextActivityPortal({
             />
             <p className="text-xs text-muted-foreground">
               Mínimo {minDescriptionLength} caracteres ({description.trim().length}/{minDescriptionLength})
-              {description.trim().length >= minDescriptionLength && (
-                <span className="text-green-600 ml-2">✓ Válido</span>
-              )}
             </p>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t">
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={!isFormValid || createActivity.isPending}
             className={cn(
               'w-full h-10 rounded-md font-medium text-sm transition-colors',
@@ -224,38 +225,34 @@ export function NextActivityPortal({
               'flex items-center justify-center gap-2'
             )}
           >
-            {createActivity.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : null}
-            ✓ Crear Actividad
+            {createActivity.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Crear actividad
           </button>
-        </div>
+        </form>
       </div>
 
       {/* Warning Dialog */}
       {showWarning && (
-        <div 
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ zIndex: 100000 }}
-        >
-          <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 100000 }}>
+          <div className="absolute inset-0 bg-foreground/50" />
           <div className="relative bg-background rounded-lg shadow-2xl w-full max-w-sm p-6 mx-4">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="h-5 w-5 text-warning" />
               <h3 className="font-semibold">¿Estás seguro?</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Debes crear la siguiente actividad para completar el flujo. 
-              Es obligatorio definir el próximo paso con este prospecto.
+              Debes crear la siguiente actividad para completar el flujo. Es obligatorio definir el próximo paso con este prospecto.
             </p>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => setShowWarning(false)}
                 className="flex-1 h-9 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted transition-colors"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={() => setShowWarning(false)}
                 className="flex-1 h-9 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
               >
@@ -265,7 +262,6 @@ export function NextActivityPortal({
           </div>
         </div>
       )}
-    </div>,
-    document.body
+    </div>
   );
 }
