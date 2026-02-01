@@ -38,7 +38,6 @@ interface ActivityModalProps {
 
 type ModalState = 'buttons' | 'complete' | 'not-complete' | 'block';
 
-// Data to preserve for next activity modal
 interface CompletedActivityData {
   prospectId: string;
   prospectName: string;
@@ -56,20 +55,17 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const notCompleteActivity = useNotCompleteActivity();
   const blockActivity = useBlockActivity();
 
-  // Debug: track state changes
   useEffect(() => {
     console.log('=== STATE CHANGE ===');
     console.log('showNextActivityModal:', showNextActivityModal);
     console.log('completedDataRef.current:', completedDataRef.current);
   }, [showNextActivityModal]);
 
-  // CRÍTICO: Solo resetear si AMBOS modales están cerrados
   useEffect(() => {
     console.log('=== RESET EFFECT ===');
     console.log('open:', open);
     console.log('showNextActivityModal:', showNextActivityModal);
     
-    // Solo resetear si el modal principal está cerrado Y no estamos mostrando el de siguiente
     if (!open && !showNextActivityModal) {
       console.log('Both modals closed, will reset state');
       const timeout = setTimeout(() => {
@@ -161,7 +157,6 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       description: 'La actividad fue completada y la siguiente acción fue programada.',
     });
     
-    // Cerrar todo
     setShowNextActivityModal(false);
     completedDataRef.current = null;
     setModalState('buttons');
@@ -292,6 +287,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   console.log('open:', open);
   console.log('showNextActivityModal:', showNextActivityModal);
   console.log('completedDataRef:', completedDataRef.current);
+  console.log('Will render NextActivityPortal:', !!completedDataRef.current && showNextActivityModal);
 
   return (
     <>
@@ -426,13 +422,15 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         </DialogContent>
       </Dialog>
 
-      <NextActivityPortal
-        isOpen={showNextActivityModal}
-        prospectId={completedDataRef.current?.prospectId || ''}
-        prospectName={completedDataRef.current?.prospectName || ''}
-        assignedTo={completedDataRef.current?.assignedTo}
-        onComplete={handleNextActivityCreated}
-      />
+      {completedDataRef.current && completedDataRef.current.prospectId && (
+        <NextActivityPortal
+          isOpen={showNextActivityModal}
+          prospectId={completedDataRef.current.prospectId}
+          prospectName={completedDataRef.current.prospectName}
+          assignedTo={completedDataRef.current.assignedTo}
+          onComplete={handleNextActivityCreated}
+        />
+      )}
     </>
   );
 }
