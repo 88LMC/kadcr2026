@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Check, X, Ban, Loader2 } from 'lucide-react';
 import { useCompleteActivity, useBlockActivity, useNotCompleteActivity } from '@/hooks/useActivities';
-import { MandatoryNextActivityModal } from './MandatoryNextActivityModal';
+import { NextActivityPortal } from './NextActivityPortal';
 import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
@@ -421,21 +421,15 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         </DialogContent>
       </Dialog>
 
-      {/* Render MandatoryNextActivityModal using preserved data from ref */}
-      {showNextActivityModal && completedDataRef.current && (
-        <>
-          {console.log('=== RENDERING MANDATORY MODAL ===', {
-            showNextActivityModal,
-            completedData: completedDataRef.current,
-          })}
-          <MandatoryNextActivityModal
-            open={showNextActivityModal}
-            prospectId={completedDataRef.current.prospectId}
-            prospectName={completedDataRef.current.prospectName}
-            assignedTo={completedDataRef.current.assignedTo}
-            onActivityCreated={handleNextActivityCreated}
-          />
-        </>
+      {/* Render NextActivityPortal using preserved data from ref */}
+      {completedDataRef.current && (
+        <NextActivityPortal
+          isOpen={showNextActivityModal}
+          prospectId={completedDataRef.current.prospectId}
+          prospectName={completedDataRef.current.prospectName}
+          assignedTo={completedDataRef.current.assignedTo}
+          onComplete={handleNextActivityCreated}
+        />
       )}
     </>
   );
