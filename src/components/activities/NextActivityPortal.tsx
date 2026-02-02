@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -40,11 +40,20 @@ export function NextActivityPortal({
 
   const minDescriptionLength = 5;
 
-  console.log('=== NextActivityPortal RENDER ===');
-  console.log('isOpen:', isOpen);
-  console.log('prospectId:', prospectId);
-  console.log('prospectName:', prospectName);
-  console.log('Will render:', isOpen && prospectId);
+  // Log on every render
+  useEffect(() => {
+    console.log('=== NextActivityPortal useEffect ===');
+    console.log('isOpen:', isOpen, typeof isOpen);
+    console.log('prospectId:', prospectId, typeof prospectId, 'length:', prospectId?.length);
+    console.log('prospectName:', prospectName);
+    console.log('Boolean checks:');
+    console.log('  isOpen === true:', isOpen === true);
+    console.log('  !!isOpen:', !!isOpen);
+    console.log('  !isOpen:', !isOpen);
+    console.log('  prospectId truthy:', !!prospectId);
+    console.log('  prospectId length > 0:', (prospectId?.length || 0) > 0);
+    console.log('Should render:', isOpen && prospectId && prospectId.length > 0);
+  }, [isOpen, prospectId, prospectName]);
 
   const isFormValid = activityType && scheduledDate && description.trim().length >= minDescriptionLength;
 
@@ -92,20 +101,26 @@ export function NextActivityPortal({
     void handleSubmit();
   };
 
-  // CRÍTICO: NO HACER EARLY RETURN
-  // if (!isOpen) return null; ❌ NUNCA HACER ESTO
-
-  if (!isOpen || !prospectId) {
-    console.log('NextActivityPortal: NOT rendering (isOpen:', isOpen, 'prospectId:', prospectId, ')');
+  console.log('=== NextActivityPortal RENDER CHECK ===');
+  console.log('isOpen:', isOpen, '(type:', typeof isOpen, ')');
+  console.log('prospectId:', prospectId, '(type:', typeof prospectId, ', length:', prospectId?.length, ')');
+  console.log('Will check:', !isOpen, '||', !prospectId, '||', !prospectId?.length);
+  
+  // CAMBIO CRÍTICO: Verificar que prospectId no sea string vacío
+  if (!isOpen || !prospectId || prospectId.length === 0) {
+    console.log('❌ NextActivityPortal: NOT rendering because:');
+    console.log('  isOpen:', isOpen, '(needs: true)');
+    console.log('  prospectId:', prospectId, '(needs: non-empty string)');
+    console.log('  prospectId.length:', prospectId?.length, '(needs: > 0)');
     return null;
   }
 
-  console.log('NextActivityPortal: RENDERING NOW');
+  console.log('✅ NextActivityPortal: RENDERING NOW with prospectId:', prospectId);
 
   return (
     <div
       className="fixed inset-0 flex items-center justify-center p-4 bg-black/80"
-      style={{ zIndex: 999999 }}
+      style={{ zIndex: 999999, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           handleTryClose();
