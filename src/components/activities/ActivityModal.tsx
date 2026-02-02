@@ -93,6 +93,14 @@ export function ActivityModal({ open, onOpenChange, activity, onActivityComplete
         onOpenChange(false);
       } else {
         // Notificar al padre que se completó con prospecto
+       console.log('🔴 About to call onActivityCompleted');
+console.log('🔴 onActivityCompleted exists?', !!onActivityCompleted);
+console.log('🔴 Data to send:', {
+  prospectId: originalProspectId,
+  prospectName: originalProspectName,
+  assignedTo: originalAssignedTo
+});       
+        
         onActivityCompleted?.({
           prospectId: originalProspectId,
           prospectName: originalProspectName || "Cliente",
