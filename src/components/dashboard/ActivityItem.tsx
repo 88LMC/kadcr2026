@@ -283,10 +283,25 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
 
   // NUEVO: Manejar actividad completada
   const handleActivityCompleted = (data: { prospectId: string; prospectName: string; assignedTo: string | null }) => {
-    console.log('🎉 Activity completed with prospect:', data);
-    setCompletedActivityData(data);
-    setShowNextActivityModal(true);
-  };
+  console.log('🎉 Activity completed with prospect:', data);
+  console.log('🔵 ANTES de setCompletedActivityData');
+  console.log('🔵 Current completedActivityData:', completedActivityData);
+  console.log('🔵 Current showNextActivityModal:', showNextActivityModal);
+  
+  setCompletedActivityData(data);
+  console.log('🟢 DESPUÉS de setCompletedActivityData');
+  
+  setShowNextActivityModal(true);
+  console.log('🟢 DESPUÉS de setShowNextActivityModal(true)');
+  
+  // Forzar logging después de un tick
+  setTimeout(() => {
+    console.log('🟣 DELAYED CHECK:', {
+      completedActivityData,
+      showNextActivityModal
+    });
+  }, 100);
+};
 
   // NUEVO: Manejar siguiente actividad creada
   const handleNextActivityCreated = () => {
