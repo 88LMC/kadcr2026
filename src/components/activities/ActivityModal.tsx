@@ -100,15 +100,38 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     
     if (!validateComment()) return;
 
+    const originalProspectId = activity?.prospect_id;
+    const originalProspectName = activity?.prospects?.company_name;
+    const originalAssignedTo = activity?.assigned_to;
+
+    console.log('=== BEFORE COMPLETE ===');
+    console.log('Original prospect_id:', originalProspectId);
+    console.log('Original prospect_name:', originalProspectName);
+
+    // CRÍTICO: Configurar el modal ANTES de la mutación
+    if (originalProspectId) {
+      console.log('=== SETTING UP NEXT MODAL (BEFORE mutation) ===');
+      
+      const dataToPreserve = {
+        prospectId: originalProspectId,
+        prospectName: originalProspectName || "Cliente",
+        assignedTo: originalAssignedTo || null
+      };
+      
+      console.log('Data to preserve:', dataToPreserve);
+      setCompletedData(dataToPreserve);
+      
+      // Pequeño delay para asegurar que el estado se aplique
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      setShowNextActivityModal(true);
+      
+      console.log('Modal state set to TRUE');
+    }
+
     try {
-      const originalProspectId = activity?.prospect_id;
-      const originalProspectName = activity?.prospects?.company_name;
-      const originalAssignedTo = activity?.assigned_to;
-
-      console.log('=== BEFORE COMPLETE ===');
-      console.log('Original prospect_id:', originalProspectId);
-      console.log('Original prospect_name:', originalProspectName);
-
+      console.log('NOW calling mutation...');
+      
       await completeActivity.mutateAsync({
         activityId: activity.id,
         comment: comment.trim(),
@@ -116,35 +139,21 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
 
       console.log('=== AFTER COMPLETE MUTATION ===');
 
-      if (originalProspectId) {
-        console.log('=== SETTING UP NEXT MODAL ===');
-        
-        const dataToPreserve = {
-          prospectId: originalProspectId,
-          prospectName: originalProspectName || "Cliente",
-          assignedTo: originalAssignedTo || null
-        };
-        
-        console.log('Data to preserve:', dataToPreserve);
-        console.log('Setting completedData state...');
-        
-        setCompletedData(dataToPreserve);
-        
-        console.log('Setting showNextActivityModal to TRUE');
-        setShowNextActivityModal(true);
-        
-        console.log('State updates dispatched');
-        
-      } else {
+      if (!originalProspectId) {
         console.log('=== NO PROSPECT - CLOSING ===');
         toast({
           title: 'Actividad completada',
           description: 'La tarea general fue completada.',
         });
         handleClose();
+      } else {
+        console.log('=== HAS PROSPECT - Modal should be visible ===');
       }
     } catch (error: any) {
       console.error('=== ERROR ===', error);
+      // Si hay error, resetear todo
+      setShowNextActivityModal(false);
+      setCompletedData(null);
       toast({
         title: 'Error',
         description: error.message || "Error al completar la actividad",
