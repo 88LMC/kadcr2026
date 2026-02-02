@@ -401,6 +401,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
+                    console.log('🔵 CANCEL CLICKED');
                     setModalState('buttons');
                     setComment('');
                   }}
@@ -411,7 +412,15 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
                 <Button
                   variant={stateContent.variant || 'default'}
                   className="flex-1"
-                  onClick={stateContent.onSubmit}
+                  onClick={() => {
+                    console.log('🔴 SUBMIT BUTTON CLICKED');
+                    console.log('modalState:', modalState);
+                    console.log('stateContent:', stateContent);
+                    console.log('onSubmit function:', stateContent.onSubmit);
+                    console.log('comment:', comment);
+                    console.log('Calling onSubmit now...');
+                    stateContent.onSubmit();
+                  }}
                   disabled={isLoading || comment.trim().length < minCommentLength}
                 >
                   {stateContent.isPending ? (
@@ -437,3 +446,31 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     </>
   );
 }
+```
+
+---
+
+## 📋 **INSTRUCCIONES:**
+
+1. Ve a: https://github.com/88LMC/kadcr2026/edit/main/src/components/activities/ActivityModal.tsx
+2. Borra TODO
+3. Pega este código
+4. Commit: "debug: add extensive button click logging"
+5. Espera 3 minutos
+6. Hard refresh (Ctrl+Shift+R)
+7. Completa una actividad
+8. **Mándame screenshot del log completo de la consola**
+
+---
+
+## 🎯 **LO QUE VAMOS A VER:**
+
+Cuando hagas click en "Guardar y Continuar", DEBE aparecer:
+```
+🔴 SUBMIT BUTTON CLICKED
+modalState: complete
+stateContent: {title: '✅ Actividad Completada', ...}
+onSubmit function: ƒ handleComplete()
+comment: tu comentario aquí
+Calling onSubmit now...
+=== handleComplete CALLED ===
