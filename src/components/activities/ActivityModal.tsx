@@ -229,6 +229,17 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   };
 
   const handleClose = () => {
+    console.log('🔒 handleClose called');
+    console.log('showNextActivityModal:', showNextActivityModal);
+    console.log('completedData:', completedData);
+    
+    // Solo cerrar si no hay modal de siguiente activo
+    if (showNextActivityModal || completedData) {
+      console.log('🚫 Not closing - next modal active');
+      return;
+    }
+    
+    console.log('✅ Closing modal');
     onOpenChange(false);
     setModalState('buttons');
     setComment('');
@@ -292,11 +303,22 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const stateContent = getStateContent();
 
   const handleDialogClose = (newOpen: boolean) => {
-    if (showNextActivityModal) {
-      console.log('Blocking close - next activity modal open');
+    console.log('🔒 handleDialogClose called:', { 
+      newOpen, 
+      showNextActivityModal, 
+      completedData: !!completedData,
+      willBlock: showNextActivityModal || !!completedData
+    });
+    
+    // CRÍTICO: NO permitir cerrar si el modal de siguiente está activo
+    if (showNextActivityModal || completedData) {
+      console.log('🚫 BLOCKING CLOSE - Next modal is active');
+      // NO llamar onOpenChange aquí - evitar que el padre se entere del cierre
       return;
     }
+    
     if (!newOpen) {
+      console.log('✅ Allowing close');
       handleClose();
     }
   };
