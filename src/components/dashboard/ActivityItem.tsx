@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -115,13 +115,16 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
   const [isHoveringDate, setIsHoveringDate] = useState(false);
   const [isHoveringUser, setIsHoveringUser] = useState(false);
   
-  // NUEVO: Estado para NextActivityPortal
-  const [showNextActivityModal, setShowNextActivityModal] = useState(false);
-  const [completedActivityData, setCompletedActivityData] = useState<{
+  // NUEVO: Usar useRef en lugar de useState para evitar problemas de timing
+  const showNextActivityModalRef = useRef(false);
+  const completedActivityDataRef = useRef<{
     prospectId: string;
     prospectName: string;
     assignedTo: string | null;
   } | null>(null);
+  
+  // Estado solo para forzar re-render
+  const [, setForceRender] = useState(0);
 
   // Use prop if provided, otherwise use auth context
   const isManager = isManagerProp !== undefined ? isManagerProp : isAuthManager;
@@ -281,27 +284,25 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     }
   };
 
-  // NUEVO: Manejar actividad completada
+  // NUEVO: Manejar actividad completada con useRef
   const handleActivityCompleted = (data: { prospectId: string; prospectName: string; assignedTo: string | null }) => {
-  console.log('🎉 Activity completed with prospect:', data);
-  console.log('🔵 ANTES de setCompletedActivityData');
-  console.log('🔵 Current completedActivityData:', completedActivityData);
-  console.log('🔵 Current showNextActivityModal:', showNextActivityModal);
-  
-  setCompletedActivityData(data);
-  console.log('🟢 DESPUÉS de setCompletedActivityData');
-  
-  setShowNextActivityModal(true);
-  console.log('🟢 DESPUÉS de setShowNextActivityModal(true)');
-  
-  // Forzar logging después de un tick
-  setTimeout(() => {
-    console.log('🟣 DELAYED CHECK:', {
-      completedActivityData,
-      showNextActivityModal
+    console.log('🎉 Activity completed with prospect:', data);
+    console.log('🔵 Setting refs and forcing render');
+    
+    // Usar refs en lugar de setState
+    completedActivityDataRef.current = data;
+    showNextActivityModalRef.current = true;
+    
+    console.log('🟢 Refs set:', {
+      completedActivityData: completedActivityDataRef.current,
+      showNextActivityModal: showNextActivityModalRef.current
     });
-  }, 100);
-};
+    
+    // Forzar re-render
+    setForceRender(prev => prev + 1);
+    
+    console.log('🟣 Force render triggered');
+  };
 
   // NUEVO: Manejar siguiente actividad creada
   const handleNextActivityCreated = () => {
@@ -310,8 +311,10 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
       title: 'Actividad completada',
       description: 'La actividad fue completada y la siguiente acción fue programada.',
     });
-    setShowNextActivityModal(false);
-    setCompletedActivityData(null);
+    
+    showNextActivityModalRef.current = false;
+    completedActivityDataRef.current = null;
+    setForceRender(prev => prev + 1);
   };
 
   const getUrgencyColor = () => {
@@ -338,6 +341,11 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     const date = new Date(dateStr + 'T12:00:00');
     return format(date, 'd-MMM', { locale: es });
   };
+
+  console.log('🔍 ActivityItem render:', {
+    showNextActivityModal: showNextActivityModalRef.current,
+    hasCompletedData: !!completedActivityDataRef.current
+  });
 
   const cardContent = (
     <Card 
@@ -590,13 +598,13 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
         />
       )}
 
-      {/* NUEVO: NextActivityPortal renderizado FUERA del ActivityModal */}
-      {completedActivityData && (
+      {/* NUEVO: NextActivityPortal renderizado FUERA del ActivityModal usando refs */}
+      {showNextActivityModalRef.current && completedActivityDataRef.current && (
         <NextActivityPortal
-          isOpen={showNextActivityModal}
-          prospectId={completedActivityData.prospectId}
-          prospectName={completedActivityData.prospectName}
-          assignedTo={completedActivityData.assignedTo}
+          isOpen={showNextActivityModalRef.current}
+          prospectId={completedActivityDataRef.current.prospectId}
+          prospectName={completedActivityDataRef.current.prospectName}
+          assignedTo={completedActivityDataRef.current.assignedTo}
           onComplete={handleNextActivityCreated}
         />
       )}
