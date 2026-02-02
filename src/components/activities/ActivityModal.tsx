@@ -75,7 +75,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         setModalState('buttons');
         setComment('');
         setCompletedData(null);
-      }, 2000); // AUMENTADO a 2 segundos
+      }, 2000);
       return () => clearTimeout(timeout);
     } else {
       console.log('NOT resetting because:', {
@@ -241,9 +241,9 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     console.log('showNextActivityModal:', showNextActivityModal);
     console.log('completedData:', completedData);
     
-    // Solo cerrar si no hay modal de siguiente activo
+    // CRÍTICO: NUNCA cerrar si hay modal de siguiente activo
     if (showNextActivityModal || completedData) {
-      console.log('🚫 Not closing - next modal active');
+      console.log('🚫 BLOCKING handleClose - next modal active');
       return;
     }
     
@@ -321,7 +321,6 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     // CRÍTICO: NO permitir cerrar si el modal de siguiente está activo
     if (showNextActivityModal || completedData) {
       console.log('🚫 BLOCKING CLOSE - Next modal is active');
-      // NO llamar onOpenChange aquí - evitar que el padre se entere del cierre
       return;
     }
     
@@ -340,8 +339,21 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   return (
     <>
       <Dialog 
-        open={(open && !showNextActivityModal) || showNextActivityModal} 
-        onOpenChange={handleDialogClose}
+        open={open || showNextActivityModal} 
+        onOpenChange={(newOpen) => {
+          console.log('🚨 Dialog onOpenChange triggered:', newOpen);
+          console.log('Current state:', { showNextActivityModal, completedData: !!completedData });
+          
+          // IGNORAR COMPLETAMENTE si hay modal de siguiente activo
+          if (showNextActivityModal || completedData) {
+            console.log('🚫 IGNORING onOpenChange - next modal active');
+            return;
+          }
+          
+          // Solo procesar si NO hay modal activo
+          console.log('Processing onOpenChange normally');
+          handleDialogClose(newOpen);
+        }}
       >
         <DialogContent className="sm:max-w-md">
           {modalState === 'buttons' ? (
