@@ -331,7 +331,10 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
 
   return (
     <>
-      <Dialog open={open && !showNextActivityModal} onOpenChange={handleDialogClose}>
+      <Dialog 
+        open={(open && !showNextActivityModal) || showNextActivityModal} 
+        onOpenChange={handleDialogClose}
+      >
         <DialogContent className="sm:max-w-md">
           {modalState === 'buttons' ? (
             <>
