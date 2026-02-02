@@ -69,13 +69,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     
     // CRÍTICO: NO resetear si showNextActivityModal está true O si hay completedData
     if (!open && !showNextActivityModal && !completedData) {
-      console.log('Both modals closed AND no data, will reset state');
+      console.log('Both modals closed AND no data, will reset state in 2 seconds');
       const timeout = setTimeout(() => {
         console.log('Resetting state now');
         setModalState('buttons');
         setComment('');
         setCompletedData(null);
-      }, 200);
+      }, 2000); // AUMENTADO a 2 segundos
       return () => clearTimeout(timeout);
     } else {
       console.log('NOT resetting because:', {
@@ -135,9 +135,17 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         
         console.log('Data to preserve:', dataToPreserve);
         setCompletedData(dataToPreserve);
+        
+        console.log('Waiting 200ms for state to solidify...');
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         setShowNextActivityModal(true);
         
         console.log('Modal state set to TRUE');
+        console.log('Waiting another 200ms...');
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        console.log('State should be stable now');
       }
 
       // AHORA sí esperamos la mutación (pero el modal ya está configurado)
