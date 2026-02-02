@@ -123,10 +123,12 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     assignedTo: string | null;
   } | null>(null);
 
+  // Use prop if provided, otherwise use auth context
   const isManager = isManagerProp !== undefined ? isManagerProp : isAuthManager;
 
   const Icon = activityIcons[activity.activity_type] || MoreHorizontal;
 
+  // Get assigned user name
   const assignedUserName = users?.find(u => u.id === activity.assigned_to)?.full_name;
   
   const getDaysOverdue = () => {
@@ -139,6 +141,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
 
   const daysOverdue = getDaysOverdue();
 
+  // Quick date change mutation
   const updateDateMutation = useMutation({
     mutationFn: async (newDate: Date) => {
       const dateStr = format(newDate, 'yyyy-MM-dd');
@@ -148,6 +151,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
         .eq('id', activity.id);
       if (error) throw error;
 
+      // Log the change
       await supabase.from('activity_logs').insert({
         user_id: user!.id,
         action_type: 'update',
@@ -171,6 +175,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     },
   });
 
+  // Quick reassign mutation
   const reassignMutation = useMutation({
     mutationFn: async (newUserId: string) => {
       const { error } = await supabase
@@ -181,6 +186,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
 
       const newUserName = users?.find(u => u.id === newUserId)?.full_name;
       
+      // Log the change
       await supabase.from('activity_logs').insert({
         user_id: user!.id,
         action_type: 'update',
@@ -207,6 +213,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     },
   });
 
+  // Mark as urgent mutation (set date to yesterday)
   const markUrgentMutation = useMutation({
     mutationFn: async () => {
       const yesterday = new Date();
@@ -219,6 +226,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
         .eq('id', activity.id);
       if (error) throw error;
 
+      // Log the change
       await supabase.from('activity_logs').insert({
         user_id: user!.id,
         action_type: 'update',
@@ -241,6 +249,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     },
   });
 
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
@@ -365,7 +374,9 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
               </p>
             )}
 
+            {/* Date and User row with quick actions for managers */}
             <div className="mt-2 flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+              {/* Quick Date Change */}
               {isManager ? (
                 <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                   <PopoverTrigger asChild>
@@ -399,6 +410,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
                 </span>
               )}
 
+              {/* Quick User Reassign */}
               {assignedUserName && (
                 isManager ? (
                   <Popover open={isUserSelectOpen} onOpenChange={setIsUserSelectOpen}>
@@ -470,6 +482,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
             )}
           </div>
 
+          {/* Edit button for managers */}
           {isManager && (
             <Button
               variant="ghost"
@@ -504,6 +517,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
 
   return (
     <>
+      {/* Context Menu for managers */}
       {isManager ? (
         <ContextMenu>
           <ContextMenuTrigger asChild>
@@ -572,6 +586,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
         />
       )}
 
+      {/* Reassign Confirmation */}
       <AlertDialog open={showReassignConfirm} onOpenChange={setShowReassignConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -588,6 +603,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Delete Confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
