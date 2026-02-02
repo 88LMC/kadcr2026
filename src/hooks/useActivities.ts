@@ -247,8 +247,16 @@ export function useCompleteActivity() {
       return data;
     },
     onSuccess: async () => {
+      console.log('⏰ Activity completed - delaying query invalidation for 5 seconds...');
+      
+      // DELAY de 5 segundos para dar tiempo al modal de siguiente actividad
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      console.log('🔄 Now invalidating queries after delay');
       await queryClient.invalidateQueries({ queryKey: ['activities'], refetchType: 'all' });
       await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
+      
+      console.log('✅ Queries invalidated');
     },
   });
 }
