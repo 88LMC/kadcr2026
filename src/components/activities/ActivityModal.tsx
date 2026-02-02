@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -48,7 +48,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   const [modalState, setModalState] = useState<ModalState>('buttons');
   const [comment, setComment] = useState('');
   const [showNextActivityModal, setShowNextActivityModal] = useState(false);
-  const completedDataRef = useRef<CompletedActivityData | null>(null);
+  const [completedData, setCompletedData] = useState<CompletedActivityData | null>(null);
   
   const { toast } = useToast();
   const completeActivity = useCompleteActivity();
@@ -58,8 +58,8 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   useEffect(() => {
     console.log('=== STATE CHANGE ===');
     console.log('showNextActivityModal:', showNextActivityModal);
-    console.log('completedDataRef.current:', completedDataRef.current);
-  }, [showNextActivityModal]);
+    console.log('completedData:', completedData);
+  }, [showNextActivityModal, completedData]);
 
   useEffect(() => {
     console.log('=== RESET EFFECT ===');
@@ -72,7 +72,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         console.log('Resetting state now');
         setModalState('buttons');
         setComment('');
-        completedDataRef.current = null;
+        setCompletedData(null);
       }, 200);
       return () => clearTimeout(timeout);
     } else {
@@ -119,18 +119,21 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       if (originalProspectId) {
         console.log('=== SETTING UP NEXT MODAL ===');
         
-        completedDataRef.current = {
+        const dataToPreserve = {
           prospectId: originalProspectId,
           prospectName: originalProspectName || "Cliente",
           assignedTo: originalAssignedTo || null
         };
         
-        console.log('Data preserved:', completedDataRef.current);
-        console.log('Setting showNextActivityModal to TRUE');
+        console.log('Data to preserve:', dataToPreserve);
+        console.log('Setting completedData state...');
         
+        setCompletedData(dataToPreserve);
+        
+        console.log('Setting showNextActivityModal to TRUE');
         setShowNextActivityModal(true);
         
-        console.log('State update dispatched');
+        console.log('State updates dispatched');
         
       } else {
         console.log('=== NO PROSPECT - CLOSING ===');
@@ -158,7 +161,7 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     });
     
     setShowNextActivityModal(false);
-    completedDataRef.current = null;
+    setCompletedData(null);
     setModalState('buttons');
     setComment('');
     onOpenChange(false);
@@ -286,8 +289,8 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
   console.log('=== RENDER ===');
   console.log('open:', open);
   console.log('showNextActivityModal:', showNextActivityModal);
-  console.log('completedDataRef:', completedDataRef.current);
-  console.log('Will render NextActivityPortal:', !!completedDataRef.current && showNextActivityModal);
+  console.log('completedData:', completedData);
+  console.log('Will render NextActivityPortal:', !!completedData && !!completedData.prospectId && showNextActivityModal);
 
   return (
     <>
@@ -422,12 +425,12 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
         </DialogContent>
       </Dialog>
 
-      {completedDataRef.current && completedDataRef.current.prospectId && (
+      {completedData && completedData.prospectId && (
         <NextActivityPortal
           isOpen={showNextActivityModal}
-          prospectId={completedDataRef.current.prospectId}
-          prospectName={completedDataRef.current.prospectName}
-          assignedTo={completedDataRef.current.assignedTo}
+          prospectId={completedData.prospectId}
+          prospectName={completedData.prospectName}
+          assignedTo={completedData.assignedTo}
           onComplete={handleNextActivityCreated}
         />
       )}
