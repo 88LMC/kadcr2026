@@ -114,34 +114,34 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     console.log('Original prospect_id:', originalProspectId);
     console.log('Original prospect_name:', originalProspectName);
 
-    // CRÍTICO: Configurar el modal ANTES de la mutación
-    if (originalProspectId) {
-      console.log('=== SETTING UP NEXT MODAL (BEFORE mutation) ===');
-      
-      const dataToPreserve = {
-        prospectId: originalProspectId,
-        prospectName: originalProspectName || "Cliente",
-        assignedTo: originalAssignedTo || null
-      };
-      
-      console.log('Data to preserve:', dataToPreserve);
-      setCompletedData(dataToPreserve);
-      
-      // Pequeño delay para asegurar que el estado se aplique
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      setShowNextActivityModal(true);
-      
-      console.log('Modal state set to TRUE');
-    }
-
     try {
-      console.log('NOW calling mutation...');
-      
-      await completeActivity.mutateAsync({
+      // CRÍTICO: Ejecutar mutación SIN await para no bloquear
+      const mutationPromise = completeActivity.mutateAsync({
         activityId: activity.id,
         comment: comment.trim(),
       });
+
+      console.log('=== MUTATION STARTED (not awaited) ===');
+
+      // Configurar modal inmediatamente (sin esperar la mutación)
+      if (originalProspectId) {
+        console.log('=== SETTING UP NEXT MODAL ===');
+        
+        const dataToPreserve = {
+          prospectId: originalProspectId,
+          prospectName: originalProspectName || "Cliente",
+          assignedTo: originalAssignedTo || null
+        };
+        
+        console.log('Data to preserve:', dataToPreserve);
+        setCompletedData(dataToPreserve);
+        setShowNextActivityModal(true);
+        
+        console.log('Modal state set to TRUE');
+      }
+
+      // AHORA sí esperamos la mutación (pero el modal ya está configurado)
+      await mutationPromise;
 
       console.log('=== AFTER COMPLETE MUTATION ===');
 
