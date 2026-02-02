@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NextActivityProvider } from "@/contexts/NextActivityContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -21,15 +22,17 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-            <Route path="/pipeline" element={<AppLayout><Pipeline /></AppLayout>} />
-            <Route path="/gestion" element={<AppLayout><Gestion /></AppLayout>} />
-            <Route path="/equipo" element={<AppLayout><Equipo /></AppLayout>} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <NextActivityProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+              <Route path="/pipeline" element={<AppLayout><Pipeline /></AppLayout>} />
+              <Route path="/gestion" element={<AppLayout><Gestion /></AppLayout>} />
+              <Route path="/equipo" element={<AppLayout><Equipo /></AppLayout>} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </NextActivityProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

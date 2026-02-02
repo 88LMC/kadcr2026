@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,10 +53,10 @@ import {
 } from 'lucide-react';
 import { ActivityModal } from '@/components/activities/ActivityModal';
 import { EditActivityModal } from '@/components/activities/EditActivityModal';
-import { NextActivityPortal } from '@/components/activities/NextActivityPortal';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNextActivity } from '@/contexts/NextActivityContext';
 import { useAllUsers } from '@/hooks/useUsers';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,6 +104,7 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: users } = useAllUsers();
+  const { showNextActivity } = useNextActivity();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -114,17 +115,6 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [isHoveringDate, setIsHoveringDate] = useState(false);
   const [isHoveringUser, setIsHoveringUser] = useState(false);
-  
-  // NUEVO: Usar useRef en lugar de useState para evitar problemas de timing
-  const showNextActivityModalRef = useRef(false);
-  const completedActivityDataRef = useRef<{
-    prospectId: string;
-    prospectName: string;
-    assignedTo: string | null;
-  } | null>(null);
-  
-  // Estado solo para forzar re-render
-  const [, setForceRender] = useState(0);
 
   // Use prop if provided, otherwise use auth context
   const isManager = isManagerProp !== undefined ? isManagerProp : isAuthManager;
@@ -284,37 +274,10 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     }
   };
 
-  // NUEVO: Manejar actividad completada con useRef
+  // Manejar actividad completada usando el provider global
   const handleActivityCompleted = (data: { prospectId: string; prospectName: string; assignedTo: string | null }) => {
-    console.log('🎉 Activity completed with prospect:', data);
-    console.log('🔵 Setting refs and forcing render');
-    
-    // Usar refs en lugar de setState
-    completedActivityDataRef.current = data;
-    showNextActivityModalRef.current = true;
-    
-    console.log('🟢 Refs set:', {
-      completedActivityData: completedActivityDataRef.current,
-      showNextActivityModal: showNextActivityModalRef.current
-    });
-    
-    // Forzar re-render
-    setForceRender(prev => prev + 1);
-    
-    console.log('🟣 Force render triggered');
-  };
-
-  // NUEVO: Manejar siguiente actividad creada
-  const handleNextActivityCreated = () => {
-    console.log('✅ Next activity created');
-    toast({
-      title: 'Actividad completada',
-      description: 'La actividad fue completada y la siguiente acción fue programada.',
-    });
-    
-    showNextActivityModalRef.current = false;
-    completedActivityDataRef.current = null;
-    setForceRender(prev => prev + 1);
+    console.log('🎉 Activity completed, calling GLOBAL context');
+    showNextActivity(data);
   };
 
   const getUrgencyColor = () => {
@@ -342,10 +305,6 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
     return format(date, 'd-MMM', { locale: es });
   };
 
-  console.log('🔍 ActivityItem render:', {
-    showNextActivityModal: showNextActivityModalRef.current,
-    hasCompletedData: !!completedActivityDataRef.current
-  });
 
   const cardContent = (
     <Card 
@@ -598,16 +557,6 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
         />
       )}
 
-      {/* NUEVO: NextActivityPortal renderizado FUERA del ActivityModal usando refs */}
-      {showNextActivityModalRef.current && completedActivityDataRef.current && (
-        <NextActivityPortal
-          isOpen={showNextActivityModalRef.current}
-          prospectId={completedActivityDataRef.current.prospectId}
-          prospectName={completedActivityDataRef.current.prospectName}
-          assignedTo={completedActivityDataRef.current.assignedTo}
-          onComplete={handleNextActivityCreated}
-        />
-      )}
 
       {/* Reassign Confirmation */}
       <AlertDialog open={showReassignConfirm} onOpenChange={setShowReassignConfirm}>
