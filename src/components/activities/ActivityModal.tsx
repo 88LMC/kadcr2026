@@ -65,9 +65,11 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
     console.log('=== RESET EFFECT ===');
     console.log('open:', open);
     console.log('showNextActivityModal:', showNextActivityModal);
+    console.log('completedData:', completedData);
     
-    if (!open && !showNextActivityModal) {
-      console.log('Both modals closed, will reset state');
+    // CRÍTICO: NO resetear si showNextActivityModal está true O si hay completedData
+    if (!open && !showNextActivityModal && !completedData) {
+      console.log('Both modals closed AND no data, will reset state');
       const timeout = setTimeout(() => {
         console.log('Resetting state now');
         setModalState('buttons');
@@ -76,9 +78,13 @@ export function ActivityModal({ open, onOpenChange, activity }: ActivityModalPro
       }, 200);
       return () => clearTimeout(timeout);
     } else {
-      console.log('NOT resetting - at least one modal is open');
+      console.log('NOT resetting because:', {
+        open,
+        showNextActivityModal,
+        hasCompletedData: !!completedData
+      });
     }
-  }, [open, showNextActivityModal]);
+  }, [open, showNextActivityModal, completedData]);
 
   const isGeneralActivity = !activity.prospect_id;
   const minCommentLength = 10;
