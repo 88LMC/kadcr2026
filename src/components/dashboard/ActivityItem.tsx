@@ -487,6 +487,13 @@ export function ActivityItem({ activity, variant = 'today', isManager: isManager
               onClick={(e) => {
                 e.stopPropagation();
                 onUnblock?.(activity.id);
+                if (activity.prospect_id) {
+                  showNextActivity({
+                    prospectId: activity.prospect_id,
+                    prospectName: activity.prospects?.company_name || 'Cliente',
+                    assignedTo: activity.assigned_to || null,
+                  });
+                }
               }}
             >
               Desbloquear

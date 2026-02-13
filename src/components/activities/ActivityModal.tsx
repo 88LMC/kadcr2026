@@ -101,12 +101,12 @@ console.log('🔴 Data to send:', {
   assignedTo: originalAssignedTo
 });       
         
+        onOpenChange(false);
         onActivityCompleted?.({
           prospectId: originalProspectId,
           prospectName: originalProspectName || "Cliente",
           assignedTo: originalAssignedTo || null
         });
-        onOpenChange(false);
       }
     } catch (error: any) {
       toast({
@@ -131,6 +131,7 @@ console.log('🔴 Data to send:', {
         description: 'La actividad permanece pendiente y aparecerá en URGENTE mañana.',
       });
 
+      onOpenChange(false);
       if (activity.prospect_id) {
         onActivityCompleted?.({
           prospectId: activity.prospect_id,
@@ -138,7 +139,6 @@ console.log('🔴 Data to send:', {
           assignedTo: activity.assigned_to || null,
         });
       }
-      onOpenChange(false);
     } catch (error) {
       toast({
         title: 'Error',
