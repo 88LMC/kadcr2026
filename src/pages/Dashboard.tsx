@@ -15,10 +15,12 @@ import {
   useUnblockActivity,
 } from '@/hooks/useActivities';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNextActivity } from '@/contexts/NextActivityContext';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Dashboard() {
   const { isManager } = useAuth();
+  const { showNextActivity } = useNextActivity();
   const { toast } = useToast();
   
   const { data: urgentActivities, isLoading: isLoadingUrgent } = useUrgentActivities();
@@ -56,12 +58,24 @@ export default function Dashboard() {
   }, []);
 
   const handleUnblock = async (activityId: string) => {
+    // Find the activity to get prospect info before unblocking
+    const blockedActivity = blockedActivities?.find(a => a.id === activityId);
+
     try {
       await unblockActivity.mutateAsync(activityId);
       toast({
         title: 'Actividad desbloqueada',
         description: 'La actividad ha sido reactivada.',
       });
+
+      // Trigger next activity modal if it has a prospect
+      if (blockedActivity?.prospect_id) {
+        showNextActivity({
+          prospectId: blockedActivity.prospect_id,
+          prospectName: blockedActivity.prospects?.company_name || 'Cliente',
+          assignedTo: blockedActivity.assigned_to || null,
+        });
+      }
     } catch (error) {
       toast({
         title: 'Error',
