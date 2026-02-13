@@ -133,6 +133,33 @@ export function useWeekActivities() {
   });
 }
 
+export function useDateRangeActivities(startDate: string, endDate: string) {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['activities', 'date-range', startDate, endDate, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          prospects (
+            company_name,
+            contact_name
+          )
+        `)
+        .in('status', ['pending', 'blocked'])
+        .gte('scheduled_date', startDate)
+        .lte('scheduled_date', endDate)
+        .order('scheduled_date', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as unknown as ActivityWithProspect[];
+    },
+    enabled: !!user && !!startDate && !!endDate,
+  });
+}
+
 export function useBlockedActivities() {
   const { user } = useAuth();
   
