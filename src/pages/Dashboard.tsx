@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { AlertCircle, CalendarCheck, CalendarDays, Phone, Ban, ClipboardList } from 'lucide-react';
+import { AlertCircle, CalendarCheck, Phone, Ban, ClipboardList } from 'lucide-react';
 import { MetricsBar } from '@/components/dashboard/MetricsBar';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
+import { CalendarView } from '@/components/dashboard/CalendarView';
 import { ActivityItem } from '@/components/dashboard/ActivityItem';
 import { GeneralActivityItem } from '@/components/dashboard/GeneralActivityItem';
 import { 
@@ -130,29 +131,35 @@ export default function Dashboard() {
           ))}
         </DashboardSection>
 
-        {/* This Week Section */}
-        <DashboardSection
-          title="Esta Semana"
-          icon={<CalendarDays className="h-5 w-5 text-primary" />}
-          count={weekActivities?.length || 0}
-          variant="today"
-          isLoading={isLoadingWeek}
-          isEmpty={!weekActivities?.length}
-          emptyMessage="No tienes actividades programadas para esta semana"
-        >
-          {Object.entries(groupedWeekActivities).map(([date, activities]) => (
-            <div key={date} className="mb-3 last:mb-0">
-              <h4 className="font-semibold text-sm text-muted-foreground mb-2 capitalize">{date}</h4>
-              {activities?.map((activity) => (
-                <ActivityItem
-                  key={activity.id}
-                  activity={activity}
-                  variant="today"
-                />
-              ))}
-            </div>
-          ))}
-        </DashboardSection>
+        {/* Calendar / Week View - Full width */}
+        <div className="lg:col-span-2">
+          <CalendarView
+            listContent={
+              isLoadingWeek ? (
+                <div className="py-8 text-center text-muted-foreground">Cargando...</div>
+              ) : !weekActivities?.length ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  No tienes actividades programadas para esta semana
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {Object.entries(groupedWeekActivities).map(([date, activities]) => (
+                    <div key={date} className="mb-3 last:mb-0">
+                      <h4 className="font-semibold text-sm text-muted-foreground mb-2 capitalize">{date}</h4>
+                      {activities?.map((activity) => (
+                        <ActivityItem
+                          key={activity.id}
+                          activity={activity}
+                          variant="today"
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+          />
+        </div>
 
         {/* New Calls Section */}
         <DashboardSection
