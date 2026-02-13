@@ -130,7 +130,14 @@ console.log('🔴 Data to send:', {
         title: 'Comentario guardado',
         description: 'La actividad permanece pendiente y aparecerá en URGENTE mañana.',
       });
-      
+
+      if (activity.prospect_id) {
+        onActivityCompleted?.({
+          prospectId: activity.prospect_id,
+          prospectName: activity.prospects?.company_name || 'Cliente',
+          assignedTo: activity.assigned_to || null,
+        });
+      }
       onOpenChange(false);
     } catch (error) {
       toast({
