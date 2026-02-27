@@ -243,6 +243,12 @@ export type Database = {
         | "En Producción"
         | "Facturada"
         | "Post Venta"
+        | "Por Publicar"
+        | "En Preparación"
+        | "Presentada"
+        | "En Evaluación"
+        | "Adjudicada Ganada"
+        | "Adjudicada Perdida"
       user_role: "salesperson" | "manager"
     }
     CompositeTypes: {
@@ -394,6 +400,12 @@ export const Constants = {
         "En Producción",
         "Facturada",
         "Post Venta",
+        "Por Publicar",
+        "En Preparación",
+        "Presentada",
+        "En Evaluación",
+        "Adjudicada Ganada",
+        "Adjudicada Perdida",
       ],
       user_role: ["salesperson", "manager"],
     },

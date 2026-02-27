@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Constants, Database } from '@/integrations/supabase/types';
+import { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Dialog,
   DialogContent,
@@ -20,12 +22,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Clock, Ban, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, Ban, Loader2 } from 'lucide-react';
+import { getPhasesForType, LICITACION_CATEGORIAS, CLOSED_LICITACION_PHASES, isLicitacionPhase, formatColones, daysUntil } from '@/lib/licitacion-constants';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 type ActivityStatus = Database['public']['Enums']['activity_status'];
-
-const PHASES = Constants.public.Enums.phase_type;
 
 interface ProspectWithStats {
   id: string;
@@ -35,6 +36,11 @@ interface ProspectWithStats {
   estimated_value: number | null;
   pending_activities: number;
   days_in_phase: number;
+  prospect_type?: string | null;
+  licitacion_numero?: string | null;
+  licitacion_institucion?: string | null;
+  licitacion_fecha_cierre?: string | null;
+  licitacion_monto_estimado?: number | null;
 }
 
 interface ProspectPhaseModalProps {
@@ -53,11 +59,20 @@ interface Activity {
 }
 
 export function ProspectPhaseModal({ prospect, open, onOpenChange }: ProspectPhaseModalProps) {
-  const [newPhase, setNewPhase] = useState<PhaseType | null>(null);
+  const [newPhase, setNewPhase] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  // Adjudication state
+  const [showAdjudicacion, setShowAdjudicacion] = useState(false);
+  const [adjCategoria, setAdjCategoria] = useState('');
+  const [adjDetalles, setAdjDetalles] = useState('');
+  const [cancelPending, setCancelPending] = useState(false);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const isLicitacion = prospect?.prospect_type === 'licitacion';
+  const availablePhases = getPhasesForType(prospect?.prospect_type);
 
   // Fetch activity history
   const { data: activities, isLoading: loadingActivities } = useQuery({
@@ -77,20 +92,67 @@ export function ProspectPhaseModal({ prospect, open, onOpenChange }: ProspectPha
     enabled: !!prospect?.id && showHistory,
   });
 
+  // Count pending activities
+  const { data: pendingCount } = useQuery({
+    queryKey: ['prospect-pending-count', prospect?.id],
+    queryFn: async () => {
+      if (!prospect?.id) return 0;
+      const { count, error } = await supabase
+        .from('activities')
+        .select('id', { count: 'exact', head: true })
+        .eq('prospect_id', prospect.id)
+        .eq('status', 'pending');
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!prospect?.id && showAdjudicacion,
+  });
+
   const updatePhase = useMutation({
-    mutationFn: async ({ prospectId, phase }: { prospectId: string; phase: PhaseType }) => {
+    mutationFn: async ({ prospectId, phase, categoria, detalles, shouldCancelPending }: {
+      prospectId: string;
+      phase: string;
+      categoria?: string;
+      detalles?: string;
+      shouldCancelPending?: boolean;
+    }) => {
+      const updateData: Record<string, any> = {
+        current_phase: phase,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (categoria) {
+        updateData.licitacion_categoria = categoria;
+      }
+      if (detalles) {
+        updateData.licitacion_razon_resultado = detalles;
+      }
+
       const { error } = await supabase
         .from('prospects')
-        .update({
-          current_phase: phase,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', prospectId);
 
       if (error) throw error;
+
+      // Cancel pending activities if requested
+      if (shouldCancelPending) {
+        const { error: cancelError } = await supabase
+          .from('activities')
+          .update({
+            status: 'completed' as any,
+            completion_comment: 'Cancelada automáticamente - Licitación adjudicada',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('prospect_id', prospectId)
+          .eq('status', 'pending');
+
+        if (cancelError) throw cancelError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
       toast({
         title: 'Fase actualizada',
         description: `${prospect?.company_name} movido a ${newPhase}`,
@@ -110,12 +172,39 @@ export function ProspectPhaseModal({ prospect, open, onOpenChange }: ProspectPha
     setNewPhase(null);
     setReason('');
     setShowHistory(false);
+    setShowAdjudicacion(false);
+    setAdjCategoria('');
+    setAdjDetalles('');
+    setCancelPending(false);
     onOpenChange(false);
   };
 
   const handleMove = () => {
     if (!prospect || !newPhase) return;
+
+    // Check if moving to adjudication phase
+    if (isLicitacion && CLOSED_LICITACION_PHASES.includes(newPhase as any)) {
+      setShowAdjudicacion(true);
+      return;
+    }
+
     updatePhase.mutate({ prospectId: prospect.id, phase: newPhase });
+  };
+
+  const handleAdjudicacion = () => {
+    if (!prospect || !newPhase) return;
+    if (!adjCategoria) {
+      toast({ title: 'Selecciona una razón', variant: 'destructive' });
+      return;
+    }
+
+    updatePhase.mutate({
+      prospectId: prospect.id,
+      phase: newPhase,
+      categoria: adjCategoria,
+      detalles: adjCategoria === 'otros' ? adjDetalles : adjCategoria,
+      shouldCancelPending: cancelPending,
+    });
   };
 
   const formatCurrency = (value: number) => {
@@ -147,26 +236,129 @@ export function ProspectPhaseModal({ prospect, open, onOpenChange }: ProspectPha
 
   const getStatusLabel = (status: ActivityStatus | null) => {
     switch (status) {
-      case 'completed':
-        return 'COMPLETADA';
-      case 'blocked':
-        return 'BLOQUEADA';
-      default:
-        return 'PENDIENTE';
+      case 'completed': return 'COMPLETADA';
+      case 'blocked': return 'BLOQUEADA';
+      default: return 'PENDIENTE';
     }
   };
 
   if (!prospect) return null;
 
+  // Adjudication sub-modal
+  if (showAdjudicacion) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>🏛️ Licitación Adjudicada</DialogTitle>
+            <p className="text-sm text-muted-foreground">{prospect.company_name}</p>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="font-medium">Razón del resultado:</Label>
+              <RadioGroup value={adjCategoria} onValueChange={setAdjCategoria}>
+                {LICITACION_CATEGORIAS.map((cat) => (
+                  <div key={cat.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={cat.value} id={`cat-${cat.value}`} />
+                    <Label htmlFor={`cat-${cat.value}`} className="font-normal cursor-pointer">
+                      {cat.label}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+
+            {adjCategoria === 'otros' && (
+              <div className="space-y-2">
+                <Label>Especifica la razón:</Label>
+                <Textarea
+                  value={adjDetalles}
+                  onChange={(e) => setAdjDetalles(e.target.value)}
+                  placeholder="Describe la razón del resultado..."
+                  rows={2}
+                />
+              </div>
+            )}
+
+            {(pendingCount ?? 0) > 0 && (
+              <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 space-y-2">
+                <p className="text-sm font-medium">
+                  Tienes {pendingCount} actividades pendientes.
+                </p>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="cancel-pending"
+                    checked={cancelPending}
+                    onChange={(e) => setCancelPending(e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor="cancel-pending" className="text-sm font-normal cursor-pointer">
+                    ¿Cancelarlas automáticamente?
+                  </Label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowAdjudicacion(false)}>
+              Volver
+            </Button>
+            <Button
+              onClick={handleAdjudicacion}
+              disabled={!adjCategoria || updatePhase.isPending}
+            >
+              {updatePhase.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar Adjudicación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{prospect.company_name}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {isLicitacion && (
+              <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-xs">🏛️ LIC</Badge>
+            )}
+            {prospect.company_name}
+          </DialogTitle>
           <div className="text-sm text-muted-foreground">{prospect.contact_name}</div>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Licitacion Info */}
+          {isLicitacion && (
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-1 text-sm">
+              {prospect.licitacion_numero && (
+                <p><span className="font-medium">Nº:</span> {prospect.licitacion_numero}</p>
+              )}
+              {prospect.licitacion_institucion && (
+                <p><span className="font-medium">Institución:</span> {prospect.licitacion_institucion}</p>
+              )}
+              {prospect.licitacion_fecha_cierre && (
+                <p>
+                  <span className="font-medium">Cierre:</span>{' '}
+                  {new Date(prospect.licitacion_fecha_cierre + 'T12:00:00').toLocaleDateString('es-CR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {(() => {
+                    const d = daysUntil(prospect.licitacion_fecha_cierre);
+                    if (d !== null && d >= 0) return ` (${d} días)`;
+                    return '';
+                  })()}
+                </p>
+              )}
+              {prospect.licitacion_monto_estimado && (
+                <p><span className="font-medium">Monto:</span> {formatColones(prospect.licitacion_monto_estimado)}</p>
+              )}
+            </div>
+          )}
+
           {/* Stats */}
           <div className="flex flex-wrap gap-2">
             {prospect.estimated_value && prospect.estimated_value > 0 && (
@@ -182,20 +374,20 @@ export function ProspectPhaseModal({ prospect, open, onOpenChange }: ProspectPha
             <div className="text-sm">
               Fase actual: <span className="font-medium">{prospect.current_phase}</span>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Cambiar a:</label>
               <Select
                 value={newPhase || ''}
-                onValueChange={(value) => setNewPhase(value as PhaseType)}
+                onValueChange={(value) => setNewPhase(value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona fase" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PHASES.map((phase) => (
+                  {availablePhases.map((phase) => (
                     <SelectItem key={phase} value={phase}>
-                      {phase} {phase === prospect.current_phase && '(actual)'}
+                      {phase} {phase === prospect.current_phase ? '(actual)' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

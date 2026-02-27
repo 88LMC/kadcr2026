@@ -9,6 +9,11 @@ type PhaseType = Database['public']['Enums']['phase_type'];
 interface ProspectWithStats extends Prospect {
   pending_activities: number;
   days_in_phase: number;
+  prospect_type: string | null;
+  licitacion_numero: string | null;
+  licitacion_institucion: string | null;
+  licitacion_fecha_cierre: string | null;
+  licitacion_monto_estimado: number | null;
 }
 
 export function useProspects() {
