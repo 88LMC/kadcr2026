@@ -115,8 +115,17 @@ export type Database = {
           email: string | null
           estimated_value: number | null
           id: string
+          licitacion_categoria: string | null
+          licitacion_fecha_apertura: string | null
+          licitacion_fecha_cierre: string | null
+          licitacion_fecha_publicacion: string | null
+          licitacion_institucion: string | null
+          licitacion_monto_estimado: number | null
+          licitacion_numero: string | null
+          licitacion_razon_resultado: string | null
           notes: string | null
           phone: string | null
+          prospect_type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -127,8 +136,17 @@ export type Database = {
           email?: string | null
           estimated_value?: number | null
           id?: string
+          licitacion_categoria?: string | null
+          licitacion_fecha_apertura?: string | null
+          licitacion_fecha_cierre?: string | null
+          licitacion_fecha_publicacion?: string | null
+          licitacion_institucion?: string | null
+          licitacion_monto_estimado?: number | null
+          licitacion_numero?: string | null
+          licitacion_razon_resultado?: string | null
           notes?: string | null
           phone?: string | null
+          prospect_type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -139,8 +157,17 @@ export type Database = {
           email?: string | null
           estimated_value?: number | null
           id?: string
+          licitacion_categoria?: string | null
+          licitacion_fecha_apertura?: string | null
+          licitacion_fecha_cierre?: string | null
+          licitacion_fecha_publicacion?: string | null
+          licitacion_institucion?: string | null
+          licitacion_monto_estimado?: number | null
+          licitacion_numero?: string | null
+          licitacion_razon_resultado?: string | null
           notes?: string | null
           phone?: string | null
+          prospect_type?: string | null
           updated_at?: string | null
         }
         Relationships: []
