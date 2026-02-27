@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Constants, Database } from '@/integrations/supabase/types';
+import { Database } from '@/integrations/supabase/types';
 import {
   Dialog,
   DialogContent,
@@ -22,10 +22,9 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus } from 'lucide-react';
+import { B2B_PHASES, LICITACION_PHASES, formatColones, daysUntil } from '@/lib/licitacion-constants';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
-
-const PHASES = Constants.public.Enums.phase_type;
 
 interface Prospect {
   id: string;
@@ -36,6 +35,7 @@ interface Prospect {
   current_phase: PhaseType | null;
   estimated_value: number | null;
   notes?: string | null;
+  prospect_type?: string | null;
 }
 
 interface EditProspectModalProps {
@@ -55,14 +55,25 @@ export default function EditProspectModal({
     contact_name: '',
     phone: '',
     email: '',
-    current_phase: '' as PhaseType | '',
+    current_phase: '' as string,
     estimated_value: '',
     notes: '',
+    // Licitacion fields
+    licitacion_numero: '',
+    licitacion_institucion: '',
+    licitacion_fecha_cierre: '',
+    licitacion_fecha_publicacion: '',
+    licitacion_fecha_apertura: '',
+    licitacion_monto_estimado: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [prospectType, setProspectType] = useState<string>('regular');
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const isLicitacion = prospectType === 'licitacion';
+  const availablePhases = isLicitacion ? LICITACION_PHASES : B2B_PHASES;
 
   useEffect(() => {
     if (prospect) {
@@ -73,22 +84,39 @@ export default function EditProspectModal({
         current_phase: prospect.current_phase || '',
         estimated_value: prospect.estimated_value?.toString() || '',
         notes: '',
+        licitacion_numero: '',
+        licitacion_institucion: '',
+        licitacion_fecha_cierre: '',
+        licitacion_fecha_publicacion: '',
+        licitacion_fecha_apertura: '',
+        licitacion_monto_estimado: '',
       });
+      setProspectType(prospect.prospect_type || 'regular');
       setErrors({});
     }
   }, [prospect]);
 
-  // Fetch notes separately since it's not in the main query
+  // Fetch full prospect data including licitacion fields
   useEffect(() => {
     if (prospect?.id && open) {
       supabase
         .from('prospects')
-        .select('notes')
+        .select('notes, prospect_type, licitacion_numero, licitacion_institucion, licitacion_fecha_cierre, licitacion_fecha_publicacion, licitacion_fecha_apertura, licitacion_monto_estimado')
         .eq('id', prospect.id)
         .single()
         .then(({ data }) => {
-          if (data?.notes) {
-            setFormData(prev => ({ ...prev, notes: data.notes || '' }));
+          if (data) {
+            setProspectType(data.prospect_type || 'regular');
+            setFormData(prev => ({
+              ...prev,
+              notes: data.notes || '',
+              licitacion_numero: data.licitacion_numero || '',
+              licitacion_institucion: data.licitacion_institucion || '',
+              licitacion_fecha_cierre: data.licitacion_fecha_cierre || '',
+              licitacion_fecha_publicacion: data.licitacion_fecha_publicacion || '',
+              licitacion_fecha_apertura: data.licitacion_fecha_apertura || '',
+              licitacion_monto_estimado: data.licitacion_monto_estimado?.toString() || '',
+            }));
           }
         });
     }
@@ -98,17 +126,28 @@ export default function EditProspectModal({
     mutationFn: async () => {
       if (!prospect) throw new Error('No prospect selected');
 
+      const updateData: Record<string, any> = {
+        contact_name: formData.contact_name.trim(),
+        phone: formData.phone.trim() || null,
+        email: formData.email.trim() || null,
+        current_phase: formData.current_phase || null,
+        estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : null,
+        notes: formData.notes.trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (isLicitacion) {
+        updateData.licitacion_numero = formData.licitacion_numero.trim() || null;
+        updateData.licitacion_institucion = formData.licitacion_institucion.trim() || null;
+        updateData.licitacion_fecha_cierre = formData.licitacion_fecha_cierre || null;
+        updateData.licitacion_fecha_publicacion = formData.licitacion_fecha_publicacion || null;
+        updateData.licitacion_fecha_apertura = formData.licitacion_fecha_apertura || null;
+        updateData.licitacion_monto_estimado = formData.licitacion_monto_estimado ? parseFloat(formData.licitacion_monto_estimado) : null;
+      }
+
       const { error } = await supabase
         .from('prospects')
-        .update({
-          contact_name: formData.contact_name.trim(),
-          phone: formData.phone.trim() || null,
-          email: formData.email.trim() || null,
-          current_phase: formData.current_phase as PhaseType || null,
-          estimated_value: formData.estimated_value ? parseFloat(formData.estimated_value) : null,
-          notes: formData.notes.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', prospect.id);
 
       if (error) throw error;
@@ -160,9 +199,11 @@ export default function EditProspectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>✏️ Editar Prospecto</DialogTitle>
+          <DialogTitle>
+            {isLicitacion ? '🏛️' : '✏️'} Editar Prospecto
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -180,15 +221,76 @@ export default function EditProspectModal({
             </p>
           </div>
 
+          {/* Licitacion fields */}
+          {isLicitacion && (
+            <div className="space-y-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-sm font-medium text-amber-800">📋 Datos de Licitación</p>
+
+              <div className="space-y-2">
+                <Label>Número de Licitación</Label>
+                <Input
+                  placeholder="Ej: MOPT-2025-001"
+                  value={formData.licitacion_numero}
+                  onChange={(e) => setFormData({ ...formData, licitacion_numero: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Institución Contratante</Label>
+                <Input
+                  placeholder="Ej: MOPT, ICE, CCSS"
+                  value={formData.licitacion_institucion}
+                  onChange={(e) => setFormData({ ...formData, licitacion_institucion: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fecha de Cierre</Label>
+                <Input
+                  type="date"
+                  value={formData.licitacion_fecha_cierre}
+                  onChange={(e) => setFormData({ ...formData, licitacion_fecha_cierre: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fecha de Publicación</Label>
+                <Input
+                  type="date"
+                  value={formData.licitacion_fecha_publicacion}
+                  onChange={(e) => setFormData({ ...formData, licitacion_fecha_publicacion: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fecha de Apertura</Label>
+                <Input
+                  type="date"
+                  value={formData.licitacion_fecha_apertura}
+                  onChange={(e) => setFormData({ ...formData, licitacion_fecha_apertura: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Monto Estimado (₡)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Ej: 45000000"
+                  value={formData.licitacion_monto_estimado}
+                  onChange={(e) => setFormData({ ...formData, licitacion_monto_estimado: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Contact Name */}
           <div className="space-y-2">
             <Label htmlFor="contact_name">Nombre de contacto*</Label>
             <Input
               id="contact_name"
               value={formData.contact_name}
-              onChange={(e) =>
-                setFormData({ ...formData, contact_name: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
               placeholder="Nombre del contacto principal"
             />
             {errors.contact_name && (
@@ -202,9 +304,7 @@ export default function EditProspectModal({
             <Input
               id="phone"
               value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+506 8888-8888"
             />
           </div>
@@ -216,9 +316,7 @@ export default function EditProspectModal({
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="contacto@empresa.com"
             />
             {errors.email && (
@@ -231,15 +329,13 @@ export default function EditProspectModal({
             <Label>Fase</Label>
             <Select
               value={formData.current_phase}
-              onValueChange={(value) =>
-                setFormData({ ...formData, current_phase: value as PhaseType })
-              }
+              onValueChange={(value) => setFormData({ ...formData, current_phase: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar fase" />
               </SelectTrigger>
               <SelectContent className="bg-background z-50">
-                {PHASES.map((phase) => (
+                {availablePhases.map((phase) => (
                   <SelectItem key={phase} value={phase}>
                     {phase}
                   </SelectItem>
@@ -257,9 +353,7 @@ export default function EditProspectModal({
               min="0"
               step="0.01"
               value={formData.estimated_value}
-              onChange={(e) =>
-                setFormData({ ...formData, estimated_value: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, estimated_value: e.target.value })}
               placeholder="0.00"
             />
             {errors.estimated_value && (
@@ -273,9 +367,7 @@ export default function EditProspectModal({
             <Textarea
               id="notes"
               value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Información adicional sobre el prospecto..."
               rows={3}
             />

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Constants, Database } from '@/integrations/supabase/types';
+import { B2B_PHASES, LICITACION_PHASES, isLicitacionPhase } from '@/lib/licitacion-constants';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,7 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 type PhaseType = Database['public']['Enums']['phase_type'];
 
-const PHASES = Constants.public.Enums.phase_type;
+const ALL_PHASES = Constants.public.Enums.phase_type;
 
 interface ProspectRow {
   id: string;
@@ -299,7 +300,7 @@ export default function Gestion() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las fases</SelectItem>
-            {PHASES.map((phase) => (
+            {ALL_PHASES.map((phase) => (
               <SelectItem key={phase} value={phase}>
                 {phase}
               </SelectItem>
@@ -354,26 +355,31 @@ export default function Gestion() {
                     {prospect.contact_name}
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={prospect.current_phase || ''}
-                      onValueChange={(value) =>
-                        updatePhase.mutate({
-                          id: prospect.id,
-                          newPhase: value as PhaseType,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PHASES.map((phase) => (
-                          <SelectItem key={phase} value={phase}>
-                            {phase}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {(() => {
+                      const prospectPhases = isLicitacionPhase(prospect.current_phase) ? LICITACION_PHASES : B2B_PHASES;
+                      return (
+                        <Select
+                          value={prospect.current_phase || ''}
+                          onValueChange={(value) =>
+                            updatePhase.mutate({
+                              id: prospect.id,
+                              newPhase: value as PhaseType,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {prospectPhases.map((phase) => (
+                              <SelectItem key={phase} value={phase}>
+                                {phase}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-right">
                     {prospect.estimated_value ? formatCurrency(prospect.estimated_value) : '-'}

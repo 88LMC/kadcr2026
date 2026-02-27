@@ -4,6 +4,7 @@ import { MetricsBar } from '@/components/dashboard/MetricsBar';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
 import { CalendarView } from '@/components/dashboard/CalendarView';
 import { ActivityItem } from '@/components/dashboard/ActivityItem';
+import { LicitacionesWidget } from '@/components/dashboard/LicitacionesWidget';
 import { GeneralActivityItem } from '@/components/dashboard/GeneralActivityItem';
 import { 
   useUrgentActivities, 
@@ -179,6 +180,9 @@ export default function Dashboard() {
             />
           ))}
         </DashboardSection>
+
+        {/* Licitaciones Widget */}
+        <LicitacionesWidget />
 
         {/* General Tasks Section */}
         <DashboardSection
