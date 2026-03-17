@@ -108,8 +108,8 @@ export type Database = {
       }
       prospects: {
         Row: {
-          company_name: string
-          contact_name: string
+          company_name: string | null
+          contact_name: string | null
           created_at: string | null
           current_phase: Database["public"]["Enums"]["phase_type"] | null
           email: string | null
@@ -129,8 +129,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          company_name: string
-          contact_name: string
+          company_name?: string | null
+          contact_name?: string | null
           created_at?: string | null
           current_phase?: Database["public"]["Enums"]["phase_type"] | null
           email?: string | null
@@ -150,8 +150,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          company_name?: string
-          contact_name?: string
+          company_name?: string | null
+          contact_name?: string | null
           created_at?: string | null
           current_phase?: Database["public"]["Enums"]["phase_type"] | null
           email?: string | null
