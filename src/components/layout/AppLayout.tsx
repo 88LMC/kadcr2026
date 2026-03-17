@@ -25,7 +25,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, loading, signOut, isManager } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (loading) {
