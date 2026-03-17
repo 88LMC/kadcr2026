@@ -14,7 +14,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { CreateActivityModal } from '@/components/activities/CreateActivityModal';
+import { FloatingQuickAdd } from '@/components/activities/FloatingQuickAdd';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
