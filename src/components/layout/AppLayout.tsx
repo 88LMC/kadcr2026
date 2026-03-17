@@ -9,12 +9,11 @@ import {
   TableProperties,
   Users,
   LogOut, 
-  Plus, 
   Loader2,
   Menu,
   X
 } from 'lucide-react';
-import { CreateActivityModal } from '@/components/activities/CreateActivityModal';
+import { FloatingQuickAdd } from '@/components/activities/FloatingQuickAdd';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -25,7 +24,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { user, profile, loading, signOut, isManager } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (loading) {
@@ -189,21 +187,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
 
-      {/* Floating action button */}
-      <Button
-        size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
-        onClick={() => setIsCreateModalOpen(true)}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
-
-      {/* Create Activity Modal */}
-      <CreateActivityModal 
-        open={isCreateModalOpen} 
-        onOpenChange={setIsCreateModalOpen}
-        isManager={isManager}
-      />
+      {/* Floating Quick Add */}
+      <FloatingQuickAdd />
     </div>
   );
 }
