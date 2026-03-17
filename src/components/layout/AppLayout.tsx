@@ -188,21 +188,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
 
-      {/* Floating action button */}
-      <Button
-        size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
-        onClick={() => setIsCreateModalOpen(true)}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
-
-      {/* Create Activity Modal */}
-      <CreateActivityModal 
-        open={isCreateModalOpen} 
-        onOpenChange={setIsCreateModalOpen}
-        isManager={isManager}
-      />
+      {/* Floating Quick Add */}
+      <FloatingQuickAdd />
     </div>
   );
 }
