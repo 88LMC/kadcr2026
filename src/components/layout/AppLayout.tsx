@@ -9,7 +9,6 @@ import {
   TableProperties,
   Users,
   LogOut, 
-  Plus, 
   Loader2,
   Menu,
   X
