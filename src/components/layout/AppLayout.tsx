@@ -40,6 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   const getCurrentTab = () => {
+    if (location.pathname === '/mi-dia') return 'mi-dia';
     if (location.pathname === '/pipeline') return 'pipeline';
     if (location.pathname === '/gestion') return 'gestion';
     if (location.pathname === '/equipo') return 'equipo';
