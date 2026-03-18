@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUrgentActivities, useTodayActivities, useNewCallsActivities } from '@/hooks/useActivities';
+import { useUrgentActivities, useTodayActivities, useNewCallsActivities, useWeekActivities } from '@/hooks/useActivities';
 import { useProspects } from '@/hooks/useProspects';
 import { useNextActivity } from '@/contexts/NextActivityContext';
 import { ActivityModal } from '@/components/activities/ActivityModal';
