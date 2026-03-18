@@ -131,3 +131,35 @@
 .kanban-scroll::-webkit-scrollbar-thumb {
   @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50;
 }
+
+/* ========================================
+   OCULTAR BOTÓN "EDIT WITH LOVABLE"
+   ======================================== */
+
+/* Ocultar por URL específica */
+a[href*="lovable.dev/projects"],
+a[href*="utm_source=lovable-badge"],
+a[href*="lovable-badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Ocultar cualquier link de Lovable */
+a[href*="lovable.dev"] {
+  display: none !important;
+}
+
+/* Ocultar por contenedor si existe */
+div:has(> a[href*="lovable.dev"]) {
+  display: none !important;
+}
+
+/* Backup: ocultar elementos flotantes con "Edit with" */
+a[style*="position: fixed"]:has-text("Edit with"),
+button:has-text("Edit with Lovable") {
+  display: none !important;
+}
