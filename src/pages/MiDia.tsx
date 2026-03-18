@@ -240,6 +240,59 @@ export default function MiDia() {
                 <p className="text-xs text-muted-foreground">Saltadas</p>
               </div>
             </div>
+
+            {/* Recordatorios */}
+            {(weekActivities.length > 0 || inactiveProspects.length > 0 || upcomingLicitaciones.length > 0) && (
+              <div className="space-y-3 text-left">
+                <p className="text-sm font-semibold text-warning flex items-center gap-1">⚠️ ANTES DE IRTE:</p>
+                
+                {weekActivities.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">📅 Esta Semana</p>
+                        <p className="text-xs text-muted-foreground">{weekActivities.length} actividades pendientes</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                      Ver Semana <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {inactiveProspects.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">🗂️ Prospectos Sin Actividad</p>
+                        <p className="text-xs text-muted-foreground">{inactiveProspects.length} hace más de 7 días</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                      Ver Dashboard <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {upcomingLicitaciones.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border border-warning/30 p-3">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="h-4 w-4 text-warning" />
+                      <div>
+                        <p className="text-sm font-medium">🏛️ Licitaciones</p>
+                        <p className="text-xs text-muted-foreground">{upcomingLicitaciones.length} próximas a vencer</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/pipeline?filter=licitacion')}>
+                      Ver Detalles <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex flex-col gap-2 pt-4">
               <Button onClick={() => navigate('/dashboard')} size="lg" className="gap-2">
                 <Home className="h-4 w-4" /> Volver al Dashboard
