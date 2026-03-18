@@ -16,6 +16,14 @@
     <meta name="twitter:site" content="@VanHeusenCR" />
     <meta name="twitter:image" content="/favicon.svg" />
   </head>
+  <script>
+  // Remover badge Lovable
+  setInterval(function() {
+    var badge = document.getElementById('lovable-badge');
+    if (badge) badge.remove();
+  }, 100);
+</script>
+</body>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
