@@ -153,6 +153,14 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="container px-4 py-4">
             <div className="flex flex-col gap-2">
               <Button
+                variant={currentTab === 'mi-dia' ? 'default' : 'ghost'}
+                className="justify-start gap-2"
+                onClick={() => handleTabChange('mi-dia')}
+              >
+                <Sun className="h-4 w-4" />
+                Mi Día
+              </Button>
+              <Button
                 variant={currentTab === 'dashboard' ? 'default' : 'ghost'}
                 className="justify-start gap-2"
                 onClick={() => handleTabChange('dashboard')}
