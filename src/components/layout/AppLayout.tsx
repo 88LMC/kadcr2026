@@ -51,6 +51,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleTabChange = (value: string) => {
     switch (value) {
+      case 'mi-dia':
+        navigate('/mi-dia');
+        break;
       case 'pipeline':
         navigate('/pipeline');
         break;
