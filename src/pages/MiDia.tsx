@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUrgentActivities, useTodayActivities, useNewCallsActivities } from '@/hooks/useActivities';
+import { useUrgentActivities, useTodayActivities, useNewCallsActivities, useWeekActivities } from '@/hooks/useActivities';
 import { useProspects } from '@/hooks/useProspects';
 import { useNextActivity } from '@/contexts/NextActivityContext';
 import { ActivityModal } from '@/components/activities/ActivityModal';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Play, ArrowRight, Home, BarChart3, Check, X, Ban, SkipForward, Loader2 } from 'lucide-react';
+import { Sun, Play, ArrowRight, Home, BarChart3, Check, X, Ban, SkipForward, Loader2, Calendar, FolderOpen, Landmark } from 'lucide-react';
 import { daysUntil } from '@/lib/licitacion-constants';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +48,7 @@ export default function MiDia() {
   const { data: newCalls = [], isLoading: loadingCalls } = useNewCallsActivities();
   const { data: todayActivities = [], isLoading: loadingToday } = useTodayActivities();
   const { data: prospects = [] } = useProspects();
+  const { data: weekActivities = [] } = useWeekActivities();
 
   const [mode, setMode] = useState<Mode>('overview');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -70,6 +71,17 @@ export default function MiDia() {
       const da = daysUntil((a as any).licitacion_fecha_cierre) ?? 999;
       const db = daysUntil((b as any).licitacion_fecha_cierre) ?? 999;
       return da - db;
+    });
+  }, [prospects]);
+
+  // Prospectos sin actividad reciente (>7 días)
+  const inactiveProspects = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return prospects.filter(p => {
+      const phase = p.current_phase;
+      if (phase === 'Ganada' || phase === 'Perdida' || phase === 'Facturada' || phase === 'Adjudicada Ganada' || phase === 'Adjudicada Perdida') return false;
+      const updated = p.updated_at ? new Date(p.updated_at).getTime() : 0;
+      return updated < sevenDaysAgo;
     });
   }, [prospects]);
 
@@ -228,6 +240,59 @@ export default function MiDia() {
                 <p className="text-xs text-muted-foreground">Saltadas</p>
               </div>
             </div>
+
+            {/* Recordatorios */}
+            {(weekActivities.length > 0 || inactiveProspects.length > 0 || upcomingLicitaciones.length > 0) && (
+              <div className="space-y-3 text-left">
+                <p className="text-sm font-semibold text-warning flex items-center gap-1">⚠️ ANTES DE IRTE:</p>
+                
+                {weekActivities.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium">📅 Esta Semana</p>
+                        <p className="text-xs text-muted-foreground">{weekActivities.length} actividades pendientes</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                      Ver Semana <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {inactiveProspects.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">🗂️ Prospectos Sin Actividad</p>
+                        <p className="text-xs text-muted-foreground">{inactiveProspects.length} hace más de 7 días</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                      Ver Dashboard <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {upcomingLicitaciones.length > 0 && (
+                  <div className="flex items-center justify-between rounded-lg border border-warning/30 p-3">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="h-4 w-4 text-warning" />
+                      <div>
+                        <p className="text-sm font-medium">🏛️ Licitaciones</p>
+                        <p className="text-xs text-muted-foreground">{upcomingLicitaciones.length} próximas a vencer</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/pipeline?filter=licitacion')}>
+                      Ver Detalles <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex flex-col gap-2 pt-4">
               <Button onClick={() => navigate('/dashboard')} size="lg" className="gap-2">
                 <Home className="h-4 w-4" /> Volver al Dashboard
