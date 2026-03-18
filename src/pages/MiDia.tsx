@@ -48,6 +48,7 @@ export default function MiDia() {
   const { data: newCalls = [], isLoading: loadingCalls } = useNewCallsActivities();
   const { data: todayActivities = [], isLoading: loadingToday } = useTodayActivities();
   const { data: prospects = [] } = useProspects();
+  const { data: weekActivities = [] } = useWeekActivities();
 
   const [mode, setMode] = useState<Mode>('overview');
   const [currentIndex, setCurrentIndex] = useState(0);
