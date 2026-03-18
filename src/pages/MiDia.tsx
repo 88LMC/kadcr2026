@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Play, ArrowRight, Home, BarChart3, Check, X, Ban, SkipForward, Loader2, Calendar, FolderOpen, Landmark } from 'lucide-react';
+import { Sun, Play, ArrowRight, Home, BarChart3, Check, X, Ban, SkipForward, Loader2, Calendar, FolderOpen, Landmark, AlertCircle } from 'lucide-react';
 import { daysUntil } from '@/lib/licitacion-constants';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mi-dia-progress';
+const MAX_URGENT_DISPLAY = 5; // Solo mostrar TOP 5 urgentes
 
 interface MiDiaProgress {
   date: string;
@@ -44,7 +45,7 @@ export default function MiDia() {
   const navigate = useNavigate();
   const { showNextActivity } = useNextActivity();
 
-  const { data: urgentActivities = [], isLoading: loadingUrgent } = useUrgentActivities();
+  const { data: allUrgentActivities = [], isLoading: loadingUrgent } = useUrgentActivities();
   const { data: newCalls = [], isLoading: loadingCalls } = useNewCallsActivities();
   const { data: todayActivities = [], isLoading: loadingToday } = useTodayActivities();
   const { data: prospects = [] } = useProspects();
@@ -56,8 +57,17 @@ export default function MiDia() {
   const [skippedIds, setSkippedIds] = useState<string[]>([]);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [activityModalState, setActivityModalState] = useState<'complete' | 'not-complete' | 'block' | null>(null);
+  const [showAllUrgent, setShowAllUrgent] = useState(false);
 
   const isLoading = loadingUrgent || loadingCalls || loadingToday;
+
+  // Limitar urgentes a TOP 5 para "Mi Día"
+  const urgentActivities = useMemo(() => {
+    return allUrgentActivities.slice(0, MAX_URGENT_DISPLAY);
+  }, [allUrgentActivities]);
+
+  const hasMoreUrgent = allUrgentActivities.length > MAX_URGENT_DISPLAY;
+  const hiddenUrgentCount = allUrgentActivities.length - MAX_URGENT_DISPLAY;
 
   // Licitaciones próximas (14 días)
   const upcomingLicitaciones = useMemo(() => {
@@ -176,7 +186,7 @@ export default function MiDia() {
   });
 
   const getActivityCategory = (actId: string) => {
-    if (urgentActivities.some(a => a.id === actId)) return 'urgent';
+    if (allUrgentActivities.some(a => a.id === actId)) return 'urgent';
     if (newCalls.some(a => a.id === actId)) return 'calls';
     return 'today';
   };
@@ -242,10 +252,25 @@ export default function MiDia() {
             </div>
 
             {/* Recordatorios */}
-            {(weekActivities.length > 0 || inactiveProspects.length > 0 || upcomingLicitaciones.length > 0) && (
+            {(weekActivities.length > 0 || inactiveProspects.length > 0 || upcomingLicitaciones.length > 0 || hasMoreUrgent) && (
               <div className="space-y-3 text-left">
                 <p className="text-sm font-semibold text-warning flex items-center gap-1">⚠️ ANTES DE IRTE:</p>
                 
+                {hasMoreUrgent && (
+                  <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <div>
+                        <p className="text-sm font-medium">🔴 Urgentes Pendientes</p>
+                        <p className="text-xs text-muted-foreground">Tienes {hiddenUrgentCount} urgentes más</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                      Ver Todas <ArrowRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
                 {weekActivities.length > 0 && (
                   <div className="flex items-center justify-between rounded-lg border p-3">
                     <div className="flex items-center gap-2">
@@ -479,11 +504,30 @@ export default function MiDia() {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🔴</span>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-bold text-lg">{urgentActivities.length} URGENTES</p>
-                      <p className="text-sm text-muted-foreground">Actividades vencidas</p>
+                      <p className="text-sm text-muted-foreground">
+                        {hasMoreUrgent ? (
+                          <>Mostrando TOP {MAX_URGENT_DISPLAY}</>
+                        ) : (
+                          <>Actividades vencidas</>
+                        )}
+                      </p>
                     </div>
                   </div>
+                  {hasMoreUrgent && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-2 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/dashboard');
+                      }}
+                    >
+                      +{hiddenUrgentCount} más →
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -557,6 +601,11 @@ export default function MiDia() {
             <div className="space-y-3 pt-2">
               <p className="text-center text-muted-foreground">
                 TOTAL: <span className="font-bold text-foreground">{totalCount}</span> actividades
+                {hasMoreUrgent && (
+                  <span className="text-xs block mt-1 text-warning">
+                    (+{hiddenUrgentCount} urgentes más en Dashboard)
+                  </span>
+                )}
               </p>
               <Button
                 size="lg"
