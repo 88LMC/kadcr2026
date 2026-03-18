@@ -11,7 +11,8 @@ import {
   LogOut, 
   Loader2,
   Menu,
-  X
+  X,
+  Sun
 } from 'lucide-react';
 import { FloatingQuickAdd } from '@/components/activities/FloatingQuickAdd';
 import { cn } from '@/lib/utils';
