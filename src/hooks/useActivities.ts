@@ -30,7 +30,6 @@ export function useUrgentActivities() {
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      // RLS handles role-based filtering automatically
       const { data, error } = await supabase
         .from('activities')
         .select(`
@@ -65,7 +64,6 @@ export function useTodayActivities() {
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      // RLS handles role-based filtering automatically
       const { data, error } = await supabase
         .from('activities')
         .select(`
@@ -105,7 +103,6 @@ export function useWeekActivities() {
       const todayStr = today.toISOString().split('T')[0];
       const nextWeekStr = nextWeek.toISOString().split('T')[0];
       
-      // RLS handles role-based filtering automatically
       const { data, error } = await supabase
         .from('activities')
         .select(`
@@ -166,7 +163,6 @@ export function useBlockedActivities() {
   return useQuery({
     queryKey: ['activities', 'blocked', user?.id],
     queryFn: async () => {
-      // RLS handles role-based filtering automatically
       const { data, error } = await supabase
         .from('activities')
         .select(`
@@ -199,7 +195,6 @@ export function useNewCallsActivities() {
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0];
       
-      // RLS handles role-based filtering automatically
       const { data, error } = await supabase
         .from('activities')
         .select(`
@@ -234,7 +229,6 @@ export function useGeneralActivities() {
   return useQuery({
     queryKey: ['activities', 'general', user?.id],
     queryFn: async () => {
-      // RLS handles role-based filtering automatically
       const { data, error } = await supabase
         .from('activities')
         .select('*')
@@ -370,13 +364,11 @@ export function useCreateActivity() {
     onSuccess: async (data) => {
       console.log('Mutation success, invalidating all activity queries...');
       
-      // Invalidate all activity-related queries with refetchType 'all' to ensure immediate refetch
       await queryClient.invalidateQueries({ 
         queryKey: ['activities'],
         refetchType: 'all',
       });
       
-      // Also invalidate prospect activities for the ProspectActivitiesModal
       await queryClient.invalidateQueries({ 
         queryKey: ['prospect-activities'],
         refetchType: 'all',
@@ -398,13 +390,11 @@ export function useGenerateDailyCalls() {
       
       console.log('generateDailyCalls: Starting...', { dayOfWeek, todayStr });
       
-      // Only generate calls Monday (1) to Thursday (4)
       if (dayOfWeek < 1 || dayOfWeek > 4) {
         console.log('generateDailyCalls: Not a workday (Mon-Thu), skipping');
         return { generated: 0, message: 'Solo se generan llamadas de Lunes a Jueves' };
       }
       
-      // Check if daily calls already exist for today (system-generated)
       const { count, error: checkError } = await supabase
         .from('activities')
         .select('*', { count: 'exact', head: true })
@@ -422,7 +412,6 @@ export function useGenerateDailyCalls() {
         return { generated: 0, message: 'Llamadas ya generadas hoy' };
       }
 
-      // Get a salesperson to assign calls to
       const { data: salesperson, error: vendorError } = await supabase
         .from('user_profiles')
         .select('id')
@@ -442,7 +431,6 @@ export function useGenerateDailyCalls() {
 
       console.log('generateDailyCalls: Salesperson found:', salesperson.id);
 
-      // Use smart filter SQL function to get eligible prospects
       const { data: prospects, error: prospectsError } = await supabase
         .rpc('get_prospects_for_daily_calls');
 
@@ -461,7 +449,6 @@ export function useGenerateDailyCalls() {
         };
       }
 
-      // Create activities for eligible prospects (max 3)
       const newActivities = prospects.slice(0, 3).map((p: { id: string; company_name: string }) => ({
         prospect_id: p.id,
         activity_type: 'Llamada' as ActivityType,
@@ -498,35 +485,6 @@ export function useGenerateDailyCalls() {
       await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
-  export function useAllActivitiesByProspect(prospectId: string | null) {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['activities', 'by-prospect', prospectId, user?.id],
-    queryFn: async () => {
-      if (!prospectId) return [];
-      
-      const { data, error } = await supabase
-        .from('activities')
-        .select(`
-          *,
-          prospects (
-            company_name,
-            contact_name
-          )
-        `)
-        .eq('prospect_id', prospectId)
-        .order('scheduled_date', { ascending: false });
-
-      if (error) {
-        console.error('Activities by prospect error:', error);
-        throw error;
-      }
-      
-      return (data || []) as unknown as ActivityWithProspect[];
-    },
-    enabled: !!user && !!prospectId,
-  });
 }
 
 export function useSearchActivities(searchTerm: string) {
@@ -554,7 +512,6 @@ export function useSearchActivities(searchTerm: string) {
         throw error;
       }
       
-      // Filtrar por nombre de prospecto en el cliente
       const filtered = (data || []).filter(activity => {
         const companyName = (activity as any).prospects?.company_name?.toLowerCase() || '';
         const search = searchTerm.toLowerCase();
@@ -565,5 +522,4 @@ export function useSearchActivities(searchTerm: string) {
     },
     enabled: !!user && searchTerm.length >= 2,
   });
-}
 }
