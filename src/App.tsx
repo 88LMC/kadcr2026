@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Pipeline from "./pages/Pipeline";
 import Gestion from "./pages/Gestion";
 import Equipo from "./pages/Equipo";
+import MiDia from "./pages/MiDia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
