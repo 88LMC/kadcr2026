@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUrgentActivities, useTodayActivities, useNewCallsActivities, useWeekActivities } from '@/hooks/useActivities';
 import { useProspects } from '@/hooks/useProspects';
 import { useNextActivity } from '@/contexts/NextActivityContext';
+import { useDeduplicatedActivities } from '@/hooks/useDeduplicatedActivities';
 import { ActivityModal } from '@/components/activities/ActivityModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { daysUntil } from '@/lib/licitacion-constants';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'mi-dia-progress';
-const MAX_URGENT_DISPLAY = 5; // Solo mostrar TOP 5 urgentes
+const MAX_URGENT_DISPLAY = 5;
 
 interface MiDiaProgress {
   date: string;
@@ -45,11 +46,16 @@ export default function MiDia() {
   const navigate = useNavigate();
   const { showNextActivity } = useNextActivity();
 
-  const { data: allUrgentActivities = [], isLoading: loadingUrgent } = useUrgentActivities();
-  const { data: newCalls = [], isLoading: loadingCalls } = useNewCallsActivities();
-  const { data: todayActivities = [], isLoading: loadingToday } = useTodayActivities();
+  const { data: allUrgentActivitiesRaw = [], isLoading: loadingUrgent } = useUrgentActivities();
+  const { data: newCallsRaw = [], isLoading: loadingCalls } = useNewCallsActivities();
+  const { data: todayActivitiesRaw = [], isLoading: loadingToday } = useTodayActivities();
   const { data: prospects = [] } = useProspects();
   const { data: weekActivities = [] } = useWeekActivities();
+
+  // Deduplicar cada lista por separado
+  const { activities: allUrgentActivities, removedCount: urgentRemoved } = useDeduplicatedActivities(allUrgentActivitiesRaw);
+  const { activities: newCalls, removedCount: callsRemoved } = useDeduplicatedActivities(newCallsRaw);
+  const { activities: todayActivitiesDedup, removedCount: todayRemoved } = useDeduplicatedActivities(todayActivitiesRaw);
 
   const [mode, setMode] = useState<Mode>('overview');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,7 +63,6 @@ export default function MiDia() {
   const [skippedIds, setSkippedIds] = useState<string[]>([]);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [activityModalState, setActivityModalState] = useState<'complete' | 'not-complete' | 'block' | null>(null);
-  const [showAllUrgent, setShowAllUrgent] = useState(false);
 
   const isLoading = loadingUrgent || loadingCalls || loadingToday;
 
@@ -68,6 +73,20 @@ export default function MiDia() {
 
   const hasMoreUrgent = allUrgentActivities.length > MAX_URGENT_DISPLAY;
   const hiddenUrgentCount = allUrgentActivities.length - MAX_URGENT_DISPLAY;
+
+  // Filtrar actividades de "Hoy" que ya están en Urgentes (evitar duplicación entre secciones)
+  const todayActivities = useMemo(() => {
+    return todayActivitiesDedup.filter(today => {
+      const isInUrgent = allUrgentActivities.some(
+        urgent => urgent.prospect_id && urgent.prospect_id === today.prospect_id && 
+                  urgent.activity_type === today.activity_type
+      );
+      return !isInUrgent;
+    });
+  }, [todayActivitiesDedup, allUrgentActivities]);
+
+  // Total de duplicados eliminados
+  const totalRemoved = urgentRemoved + callsRemoved + todayRemoved;
 
   // Licitaciones próximas (14 días)
   const upcomingLicitaciones = useMemo(() => {
@@ -153,12 +172,10 @@ export default function MiDia() {
     }
     setActivityModalOpen(false);
     
-    // If it has a prospect, trigger the next activity flow
     if (data?.prospectId) {
       showNextActivity({ prospectId: data.prospectId, prospectName: data.prospectName, assignedTo: data.assignedTo });
     }
     
-    // Small delay to let modal close
     setTimeout(() => advanceToNext(), 300);
   }, [currentActivity, advanceToNext, showNextActivity]);
 
@@ -494,6 +511,25 @@ export default function MiDia() {
         </div>
       ) : (
         <>
+          {/* Notificación de duplicados eliminados */}
+          {totalRemoved > 0 && (
+            <Card className="border-l-4 border-l-warning bg-warning/5">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">
+                      Se eliminaron {totalRemoved} actividad{totalRemoved > 1 ? 'es' : ''} duplicada{totalRemoved > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Mismo cliente, tipo y fecha similar
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <h2 className="text-lg font-semibold">📊 TU DÍA DE HOY:</h2>
 
           <div className="grid gap-3 sm:grid-cols-2">
