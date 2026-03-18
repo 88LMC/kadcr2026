@@ -11,7 +11,8 @@ import {
   LogOut, 
   Loader2,
   Menu,
-  X
+  X,
+  Sun
 } from 'lucide-react';
 import { FloatingQuickAdd } from '@/components/activities/FloatingQuickAdd';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   const getCurrentTab = () => {
+    if (location.pathname === '/mi-dia') return 'mi-dia';
     if (location.pathname === '/pipeline') return 'pipeline';
     if (location.pathname === '/gestion') return 'gestion';
     if (location.pathname === '/equipo') return 'equipo';
@@ -49,6 +51,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleTabChange = (value: string) => {
     switch (value) {
+      case 'mi-dia':
+        navigate('/mi-dia');
+        break;
       case 'pipeline':
         navigate('/pipeline');
         break;
@@ -89,6 +94,10 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="hidden md:block">
             <Tabs value={currentTab} onValueChange={handleTabChange}>
               <TabsList>
+                <TabsTrigger value="mi-dia" className="gap-2">
+                  <Sun className="h-4 w-4" />
+                  Mi Día
+                </TabsTrigger>
                 <TabsTrigger value="dashboard" className="gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
@@ -143,6 +152,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}>
           <div className="container px-4 py-4">
             <div className="flex flex-col gap-2">
+              <Button
+                variant={currentTab === 'mi-dia' ? 'default' : 'ghost'}
+                className="justify-start gap-2"
+                onClick={() => handleTabChange('mi-dia')}
+              >
+                <Sun className="h-4 w-4" />
+                Mi Día
+              </Button>
               <Button
                 variant={currentTab === 'dashboard' ? 'default' : 'ghost'}
                 className="justify-start gap-2"
