@@ -94,6 +94,10 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="hidden md:block">
             <Tabs value={currentTab} onValueChange={handleTabChange}>
               <TabsList>
+                <TabsTrigger value="mi-dia" className="gap-2">
+                  <Sun className="h-4 w-4" />
+                  Mi Día
+                </TabsTrigger>
                 <TabsTrigger value="dashboard" className="gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
