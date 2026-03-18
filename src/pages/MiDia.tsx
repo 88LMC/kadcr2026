@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Play, ArrowRight, Home, BarChart3, Check, X, Ban, SkipForward, Loader2 } from 'lucide-react';
+import { Sun, Play, ArrowRight, Home, BarChart3, Check, X, Ban, SkipForward, Loader2, Calendar, FolderOpen, Landmark } from 'lucide-react';
 import { daysUntil } from '@/lib/licitacion-constants';
 import { cn } from '@/lib/utils';
 
