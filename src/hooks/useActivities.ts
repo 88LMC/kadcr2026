@@ -498,4 +498,72 @@ export function useGenerateDailyCalls() {
       await queryClient.invalidateQueries({ queryKey: ['prospect-activities'], refetchType: 'all' });
     },
   });
+  export function useAllActivitiesByProspect(prospectId: string | null) {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['activities', 'by-prospect', prospectId, user?.id],
+    queryFn: async () => {
+      if (!prospectId) return [];
+      
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          prospects (
+            company_name,
+            contact_name
+          )
+        `)
+        .eq('prospect_id', prospectId)
+        .order('scheduled_date', { ascending: false });
+
+      if (error) {
+        console.error('Activities by prospect error:', error);
+        throw error;
+      }
+      
+      return (data || []) as unknown as ActivityWithProspect[];
+    },
+    enabled: !!user && !!prospectId,
+  });
+}
+
+export function useSearchActivities(searchTerm: string) {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['activities', 'search', searchTerm, user?.id],
+    queryFn: async () => {
+      if (!searchTerm || searchTerm.length < 2) return [];
+      
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          prospects (
+            company_name,
+            contact_name
+          )
+        `)
+        .not('prospect_id', 'is', null)
+        .order('scheduled_date', { ascending: false });
+
+      if (error) {
+        console.error('Search activities error:', error);
+        throw error;
+      }
+      
+      // Filtrar por nombre de prospecto en el cliente
+      const filtered = (data || []).filter(activity => {
+        const companyName = (activity as any).prospects?.company_name?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+        return companyName.includes(search);
+      });
+      
+      return filtered as unknown as ActivityWithProspect[];
+    },
+    enabled: !!user && searchTerm.length >= 2,
+  });
+}
 }
