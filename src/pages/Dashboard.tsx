@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, CalendarCheck, Phone, Ban, ClipboardList } from 'lucide-react';
 import { MetricsBar } from '@/components/dashboard/MetricsBar';
 import { DashboardSection } from '@/components/dashboard/DashboardSection';
@@ -6,6 +6,8 @@ import { CalendarView } from '@/components/dashboard/CalendarView';
 import { ActivityItem } from '@/components/dashboard/ActivityItem';
 import { LicitacionesWidget } from '@/components/dashboard/LicitacionesWidget';
 import { GeneralActivityItem } from '@/components/dashboard/GeneralActivityItem';
+import { ActivitySearch } from '@/components/dashboard/ActivitySearch';
+import { ActivityModal } from '@/components/activities/ActivityModal';
 import { 
   useUrgentActivities, 
   useTodayActivities, 
@@ -31,6 +33,8 @@ export default function Dashboard() {
   const { data: newCallsActivities, isLoading: isLoadingCalls } = useNewCallsActivities();
   const { data: blockedActivities, isLoading: isLoadingBlocked } = useBlockedActivities();
   const { data: generalActivities, isLoading: isLoadingGeneral } = useGeneralActivities();
+
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
 
   // Group week activities by date
   const groupByDate = (activities: typeof weekActivities) => {
@@ -91,6 +95,9 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Metrics Bar */}
       <MetricsBar />
+
+      {/* Search Bar */}
+      <ActivitySearch onActivityClick={(activity) => setSelectedActivity(activity)} />
 
       {/* Dashboard Sections */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -224,6 +231,16 @@ export default function Dashboard() {
           ))}
         </DashboardSection>
       </div>
+
+      {/* Activity Modal for Search Results */}
+      {selectedActivity && (
+        <ActivityModal
+          open={!!selectedActivity}
+          onOpenChange={(open) => !open && setSelectedActivity(null)}
+          activity={selectedActivity}
+          onActivityCompleted={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   );
 }
