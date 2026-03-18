@@ -138,7 +138,7 @@ export default function MiDia() {
     
     // Small delay to let modal close
     setTimeout(() => advanceToNext(), 300);
-  }, [currentActivity, advanceToNext, triggerNextActivity]);
+  }, [currentActivity, advanceToNext, showNextActivity]);
 
   const handleSkip = () => {
     if (currentActivity) {
