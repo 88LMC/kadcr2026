@@ -42,7 +42,7 @@ type Mode = 'overview' | 'focus' | 'completed' | 'resume';
 export default function MiDia() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const { triggerNextActivity } = useNextActivity();
+  const { showNextActivity } = useNextActivity();
 
   const { data: urgentActivities = [], isLoading: loadingUrgent } = useUrgentActivities();
   const { data: newCalls = [], isLoading: loadingCalls } = useNewCallsActivities();
