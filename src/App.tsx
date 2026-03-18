@@ -26,11 +26,12 @@ const App = () => (
           <NextActivityProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/mi-dia" element={<AppLayout><MiDia /></AppLayout>} />
               <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
               <Route path="/pipeline" element={<AppLayout><Pipeline /></AppLayout>} />
               <Route path="/gestion" element={<AppLayout><Gestion /></AppLayout>} />
               <Route path="/equipo" element={<AppLayout><Equipo /></AppLayout>} />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/mi-dia" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </NextActivityProvider>

@@ -133,7 +133,7 @@ export default function MiDia() {
     
     // If it has a prospect, trigger the next activity flow
     if (data?.prospectId) {
-      triggerNextActivity(data.prospectId, data.prospectName, data.assignedTo || undefined);
+      showNextActivity({ prospectId: data.prospectId, prospectName: data.prospectName, assignedTo: data.assignedTo });
     }
     
     // Small delay to let modal close
