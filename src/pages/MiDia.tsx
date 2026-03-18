@@ -74,6 +74,17 @@ export default function MiDia() {
     });
   }, [prospects]);
 
+  // Prospectos sin actividad reciente (>7 días)
+  const inactiveProspects = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return prospects.filter(p => {
+      const phase = p.current_phase;
+      if (phase === 'Ganada' || phase === 'Perdida' || phase === 'Facturada' || phase === 'Adjudicada Ganada' || phase === 'Adjudicada Perdida') return false;
+      const updated = p.updated_at ? new Date(p.updated_at).getTime() : 0;
+      return updated < sevenDaysAgo;
+    });
+  }, [prospects]);
+
   // All activities combined, prioritized
   const allActivities = useMemo(() => {
     const seen = new Set<string>();
